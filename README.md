@@ -129,6 +129,8 @@ See [coverage and selection rationale](docs/builds.md), [observed runtime result
 
 ### Development
 
+Contributions use this repository's GitHub issues and pull requests. Read the bilingual [contribution guide](CONTRIBUTING.md#english) and [piracy policy](CODE_OF_CONDUCT.md#english).
+
 | Command | Purpose |
 | --- | --- |
 | `make` | List available targets |
@@ -146,6 +148,8 @@ Override paths with `make play GAME_DIR="/path/to/build" DATA="/path/to/data"` o
 Before publishing, stage intended files and run `python3 tools/check_publish.py`; `python3 tools/check_publish.py --media` validates README media. CI runs the audit and tests without original files. See [publishing notes](docs/publishing.md), [detailed tools and source layout](docs/advanced-usage.md), and [reverse-engineering workflow](docs/rea-workflow.md).
 
 ### License and credits
+
+The host's original source is licensed under [MIT](LICENSE). This excludes original game binaries, assets, trademarks and third-party dependencies.
 
 BioShock and BioShock 3D belong to their respective rights holders. This unofficial preservation project has no affiliation or endorsement. Original modules, data, SDK headers, extracted sounds and fonts are not distributed here. Unicorn, Pillow and other dependencies retain their licenses.
 
@@ -278,6 +282,8 @@ Consulta la [cobertura y selección de versiones](docs/builds.md), los [resultad
 
 ### Desarrollo
 
+Las contribuciones se revisan en los issues y pull requests de este repositorio. Lee la [guía de contribución](CONTRIBUTING.md#español) y la [política de piratería](CODE_OF_CONDUCT.md#español); ambos documentos contienen inglés y español.
+
 | Comando | Función |
 | --- | --- |
 | `make` | Mostrar los objetivos disponibles |
@@ -295,6 +301,8 @@ Indica otras rutas con `make play GAME_DIR="/ruta/a/version" DATA="/ruta/a/datos
 Antes de publicar, añade los archivos previstos al índice y ejecuta `python3 tools/check_publish.py`; `python3 tools/check_publish.py --media` valida el material visual del README. CI ejecuta la auditoría y las pruebas sin archivos originales. Consulta las [notas de publicación](docs/publishing.md), las [herramientas y estructura del código](docs/advanced-usage.md) y el [flujo de ingeniería inversa](docs/rea-workflow.md) (en inglés).
 
 ### Licencia y créditos
+
+El código original del host tiene licencia [MIT](LICENSE). Esto excluye binarios originales del juego, recursos, marcas y dependencias de terceros.
 
 BioShock y BioShock 3D pertenecen a sus respectivos titulares. Este proyecto de preservación no es oficial ni cuenta con afiliación o respaldo. No se distribuyen módulos originales, datos, cabeceras del SDK, sonidos extraídos ni fuentes. Unicorn, Pillow y las demás dependencias conservan sus licencias.
 
