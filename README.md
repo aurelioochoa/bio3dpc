@@ -10,7 +10,7 @@ Preserve and play **BioShock 3D**, the 2010 BREW mobile game, on a Linux PC. `bi
 
 **Bring your own game:** original BREW modules and data are not included or downloaded. The **LG VX8350 portrait** and **Nokia 7705 landscape** editions have separate profiles. Both reach gameplay; full campaign completion has not been verified, and the Nokia collection lacks later campaign packs.
 
-[Gameplay](#gameplay) · [Quick start](#quick-start) · [Game files](#game-files) · [Controls](#controls) · [Development](#development)
+[Gameplay](#gameplay) · [Quick start](#quick-start) · [Game files](#game-files) · [How the port works](#how-the-port-works) · [Controls](#controls) · [Development](#development)
 
 ### Gameplay
 
@@ -65,6 +65,18 @@ Supply extracted **BioShock 3D BREW game files**, keeping their original names:
 In **Installation**, select **Original BREW module (.mod)** and the **Matching game data folder (.dat + .idx)**. Choose the folder containing the actual data files, rather than its parent. Verification checks module and starter asset hashes and required pack names; it does not establish full campaign coverage. Files from other handset builds are not substitutes.
 
 **Files are used in place:** the launcher remembers their paths without copying or modifying them. Keep the source folder or external drive available while playing. APK, IPA, JAR and console ROM formats are unsupported. See [build identities and coverage](docs/builds.md) and [detailed installation guidance](docs/advanced-usage.md#installation-bring-your-own-game-files).
+
+### How the port works
+
+The original BREW `.mod` contains the ARM game code, including its software 3D renderer. **Unicorn** executes that code while Python implements the phone services and desktop frontend it uses.
+
+1. **Load the handset build.** A module hash selects its profile, screen dimensions and applet class ID. The loader copies the module into a **64 MiB** region shared between Unicorn and the host, below the 32-bit address limit. It supplies the BREW helper table and calls the module's original entry shim, which performs relocation.
+2. **Recreate the BREW lifecycle.** The host calls `AEEMod_Load`, creates the `IApplet`, sends `EVT_APP_START`, then pumps scheduled timers and callbacks. BREW interfaces such as `IShell`, `IDisplay`, `IBitmap`, `IFileMgr` and `ISoundPlayer` have guest-visible method tables. Calls into those tables reach Python handlers through ARM trap stubs, then return to the game.
+3. **Display the software framebuffer.** The emulated ARM game rasterizes the scene into a guest bitmap. The frontend converts its RGB565 pixels into a PPM image for **tkinter**, scaled from the handset's native **176×220** or **320×240** display. The supported profiles use this CPU rendering path, so rendering work also consumes emulated CPU time.
+4. **Bridge input and audio.** Desktop keys become BREW key press/release events; verified builds apply relative mouse movement through the game's native camera methods. FFmpeg decodes QCP/QCELP sound and voices, FluidSynth renders MIDI when a SoundFont is available, and `paplay` plays the resulting audio. Host callbacks preserve playback timing, including silent MIDI operation without a SoundFont.
+5. **Separate assets from saves.** The game reads its original `.idx` and `.dat` resources from the selected folder. Writable save files go to an overlay keyed by module SHA-256, keeping handset editions separate and source files unchanged. Build-specific hooks and service coverage limit compatibility; the missing Nokia campaign packs cannot be supplied by the runtime.
+
+Source entry points: [module loading](bio3dpc/modfile.py), [ARM execution](bio3dpc/machine.py), [boot lifecycle](bio3dpc/boot.py), [BREW services](bio3dpc/services.py), [desktop frontend](bio3dpc/frontend.py), and [audio](bio3dpc/audio.py). See the [source layout](docs/advanced-usage.md#layout) and [build coverage](docs/builds.md) for more detail.
 
 ### Launcher
 
@@ -163,7 +175,7 @@ Preserva y juega **BioShock 3D**, el juego móvil de BREW de 2010, en un PC con 
 
 **Debes aportar tu propio juego:** los módulos y datos originales de BREW no se incluyen ni se descargan. Las ediciones **LG VX8350 vertical** y **Nokia 7705 horizontal** tienen perfiles separados. Ambas llegan al juego; no se ha verificado la campaña completa y la colección de Nokia carece de los paquetes posteriores.
 
-[Jugabilidad](#jugabilidad) · [Inicio rápido](#inicio-rápido) · [Archivos del juego](#archivos-del-juego) · [Controles](#controles) · [Desarrollo](#desarrollo)
+[Jugabilidad](#jugabilidad) · [Inicio rápido](#inicio-rápido) · [Archivos del juego](#archivos-del-juego) · [Cómo funciona el port](#cómo-funciona-el-port) · [Controles](#controles) · [Desarrollo](#desarrollo)
 
 ### Jugabilidad
 
@@ -218,6 +230,18 @@ Aporta los **archivos extraídos de BioShock 3D para BREW** y conserva sus nombr
 En **Installation**, selecciona **Original BREW module (.mod)** y **Matching game data folder (.dat + .idx)**. Elige la carpeta que contiene los datos, no su carpeta superior. La verificación comprueba los hashes del módulo y de los recursos iniciales, además de los nombres de paquetes requeridos; no demuestra cobertura de toda la campaña. Los archivos de otros teléfonos no son sustitutos compatibles.
 
 **Los archivos se usan en su ubicación original:** el lanzador recuerda sus rutas sin copiarlos ni modificarlos. Mantén disponible la carpeta o unidad externa durante el juego. No se admiten APK, IPA, JAR ni ROM de consola. Consulta las [identidades y cobertura de versiones](docs/builds.md) y la [guía detallada de instalación](docs/advanced-usage.md#installation-bring-your-own-game-files) (en inglés).
+
+### Cómo funciona el port
+
+El `.mod` original de BREW contiene el código ARM del juego, incluido su renderizador 3D por software. **Unicorn** ejecuta ese código y Python implementa los servicios del teléfono y la interfaz de escritorio que utiliza.
+
+1. **Cargar la versión del teléfono.** El hash del módulo selecciona su perfil, dimensiones de pantalla e identificador de clase del applet. El cargador copia el módulo en una región de **64 MiB** compartida entre Unicorn y el host, bajo el límite de direcciones de 32 bits. Proporciona la tabla de funciones auxiliares de BREW y llama a la rutina de entrada original del módulo, que realiza la reubicación.
+2. **Recrear el ciclo de vida de BREW.** El host llama a `AEEMod_Load`, crea el `IApplet`, envía `EVT_APP_START` y atiende temporizadores y callbacks programados. Las interfaces de BREW, como `IShell`, `IDisplay`, `IBitmap`, `IFileMgr` e `ISoundPlayer`, tienen tablas de métodos visibles para el código emulado. Sus llamadas llegan a funciones Python mediante pequeñas rutinas ARM de enlace y después regresan al juego.
+3. **Mostrar el framebuffer por software.** El juego ARM emulado rasteriza la escena en un mapa de bits de su memoria. La interfaz convierte sus píxeles RGB565 en una imagen PPM para **tkinter**, escalada desde los **176×220** o **320×240** originales. Los perfiles admitidos usan este renderizado por CPU, por lo que dibujar también consume tiempo de CPU emulada.
+4. **Conectar entrada y audio.** Las teclas del escritorio se convierten en eventos de pulsación y liberación de BREW; las versiones verificadas aplican el movimiento relativo del ratón mediante los métodos de cámara originales. FFmpeg decodifica sonidos y voces QCP/QCELP, FluidSynth renderiza MIDI cuando hay un SoundFont y `paplay` reproduce el audio resultante. Los callbacks del host conservan la temporización de reproducción, incluido el MIDI silencioso sin SoundFont.
+5. **Separar recursos y partidas.** El juego lee sus recursos originales `.idx` y `.dat` de la carpeta seleccionada. Los archivos de partidas se escriben en una capa separada identificada por el SHA-256 del módulo, aislando las ediciones y conservando los originales. Los enlaces específicos de cada versión y los servicios implementados limitan la compatibilidad; el runtime no puede suplir los paquetes de campaña ausentes de Nokia.
+
+Puntos de entrada del código: [carga de módulos](bio3dpc/modfile.py), [ejecución ARM](bio3dpc/machine.py), [ciclo de inicio](bio3dpc/boot.py), [servicios BREW](bio3dpc/services.py), [interfaz de escritorio](bio3dpc/frontend.py) y [audio](bio3dpc/audio.py). Consulta la [estructura del código](docs/advanced-usage.md#layout) y la [cobertura por versión](docs/builds.md) para más detalles (en inglés).
 
 ### Lanzador
 
