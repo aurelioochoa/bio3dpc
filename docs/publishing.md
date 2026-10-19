@@ -22,7 +22,8 @@ these files. The commit audit also rejects blocked paths that were force-added.
 
 The presentation assets under `bio3dpc/ui_assets/` are generated artwork.
 The GIFs and PNGs under `docs/media/` are rendered gameplay captures, not
-extracted game resources. `banner.svg` is an original vector illustration.
+extracted game resources. `banner.png` is generated artwork based on the
+project's Bathysphere visual references; see [banner art](banner-art.md).
 `bio3dpc/ifaces_gen.py` records interface names and method ordering; the
 generator does not copy SDK implementation or header source text.
 

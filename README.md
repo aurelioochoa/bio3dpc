@@ -1,4 +1,4 @@
-![bio3dpc — Return to Rapture. BioShock 3D preserved for Linux PC.](docs/media/banner.svg)
+![BioShock 3D — BREW PC PORT. A realistic brass Bathysphere window overlooking Rapture.](docs/media/banner.png)
 
 # bio3dpc
 
@@ -74,10 +74,8 @@ make venv
 make install-desktop     # applications-menu entry and ~/.local/bin/bio3dpc
 ```
 
-Choose the collection folder in **Installation**. Discovery checks a local
-`bioshock3d_game_files/` folder, then a collection in `~/Downloads`; override it with
-`BIO3DPC_LIBRARY_DIR`. Local original files are ignored by Git. The launcher
-verifies the module and starter data hashes so files from unrelated handset
+Choose your own game files in **Installation**. Local original files are
+ignored by Git. The launcher verifies the module and starter data hashes so files from unrelated handset
 builds are not silently mixed.
 
 PC launches keep saves under `~/.local/state/bio3dpc/saves/<module-sha256>/`
@@ -107,8 +105,6 @@ per run with `make play GAME_DIR="…/<build>" DATA="…/data/vx8350"` or the
 
 ## Installation: bring your own game files
 
-![Installation guide with collection selection and file verification](docs/installation-preview.png)
-
 The game is **not included or downloaded**. Supply your own extracted
 **BioShock 3D BREW game files**: `bio3d.mod` is the executable module,
 `bio3d.idx` is the asset index, and `bio1.dat`, `bio2.dat`, etc. contain game
@@ -120,73 +116,21 @@ Extract any archive before selecting files; keep the original filenames.
    `make install-desktop` for a menu entry and the `bio3dpc` command.
 2. Choose **LG VX8350 · Portrait** (v1.4.1.1) or **Nokia 7705 · Landscape**
    (v1.5.2.1) in the main window.
-3. Open **Installation** and **Browse…** to your `bioshock3d_game_files` collection.
-   The launcher finds the selected edition using the layout below. Alternatively,
-   browse directly to the **Original BREW module (.mod)** and **Matching game
-   data folder (.dat + .idx)**; individual selection supports other folder names.
+3. Open **Installation**. Browse directly to your **Original BREW module (.mod)**
+   and **Matching game data folder (.dat + .idx)**. You can keep these anywhere
+   on your computer; no particular collection folder name is required.
 4. Choose **Verify files**. Fix any missing-file or mismatched-build errors,
    then **Save and return** and **Play**. Verification checks module and starter
    asset hashes and required pack names; it does not establish full campaign coverage.
 
-Expected collection layout (you only need the edition you intend to play):
-
-```text
-bioshock3d_game_files/
-  release_builds/
-    v.1.4.1.1 - lg vx8350 - 176x220/
-      278595/
-        bio3d.mod
-    v.1.5.2.1 - nokia 7705 - 320x240/
-      278583/
-        bio3d.mod
-        bio3d.idx
-        bio1.dat
-        bio2.dat
-  data/
-    vx8350/
-      bio3d.idx
-      bio1.dat
-      bio2.dat
-      bio3.dat
-      bio4.dat
-      bio5.dat
-      bio6.dat
-      bio7.dat
-  development_builds/
-    lg9900-v1.5.1.2-build1/
-      arm/
-      win/
-      verification.json
-  archives/
-    development builds.zip
-    data files.zip
-```
-
-`release_builds/` holds handset releases, `development_builds/` holds prototypes,
-`data/` holds separate campaign packs, and `archives/` preserves downloaded bundles.
-The VX9900 prototype has all seven packs matching its bundled index, but has not
-been qualified for this port or full campaign playability and is not a launcher edition.
-
-Portrait needs all seven matching packs. If these and the index are beside
-`bio3d.mod` instead of in `data/vx8350`, select that directory as the data
-folder. The Nokia landscape release has only its first two packs; later
+Portrait needs `bio1.dat` through `bio7.dat` and the matching `bio3d.idx`.
+Select the directory containing those files as the data folder. The Nokia
+landscape release has only its first two packs; later
 campaign data is missing. Other handset builds' packs are not substitutes.
 See [build coverage](docs/builds.md) for the limits of each edition.
 
-Collection discovery checks `bioshock3d_game_files/` beside this checkout, then
-the legacy local `bio3d_versions/`, then those two names under `~/Downloads/`.
-Older collections with handset folders directly under the collection root remain
-supported. Remembered paths into this checkout's renamed collection are migrated
-when the launcher loads its settings. For another location, select it in Installation
-or start with an explicit override:
-
-```bash
-./bio3dpc.sh --library "/path/to/bioshock3d_game_files"
-BIO3DPC_LIBRARY_DIR="/path/to/bioshock3d_game_files" ./bio3dpc.sh
-```
-
-Unlike the APK/IPA importers in re4mepc and redegpc, bio3dpc **uses files in
-place**. It saves the selected paths without copying or changing the game
+bio3dpc **uses files in place**. It saves the selected paths without copying
+or changing the game
 files. Keep the collection folder or external drive available while playing.
 Saves go to `~/.local/state/bio3dpc/saves/<module-sha256>/` (or
 `$XDG_STATE_HOME/bio3dpc/saves/<module-sha256>/`), separately for each build.
@@ -435,5 +379,6 @@ BioShock and BioShock 3D belong to their respective rights holders. This is
 an unofficial preservation project with no affiliation or endorsement.
 Original modules, data, SDK headers, extracted sounds and fonts are not
 distributed here. The README gameplay media consists of rendered captures;
-the launcher artwork is generated, as documented in [launcher art](docs/launcher-art.md).
+the banner and launcher artwork are generated, as documented in
+[banner art](docs/banner-art.md) and [launcher art](docs/launcher-art.md).
 Unicorn, Pillow and the other dependencies retain their own licenses.

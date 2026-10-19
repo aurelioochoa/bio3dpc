@@ -10,7 +10,6 @@ __pycache__/
 !docs/design-concepts/*.png
 !docs/launcher-preview.png
 !docs/launcher-narrow-preview.png
-!docs/installation-preview.png
 !docs/controls-preview.png
 !docs/media/*.png
 !bio3dpc/ui_assets/*.png

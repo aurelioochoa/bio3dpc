@@ -13,7 +13,6 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
-import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 BLOCKED_EXTENSIONS = {
@@ -100,10 +99,13 @@ def media():
     for target in re.findall(r'!\[[^\]]*\]\(([^)]+)\)', readme):
         if not target.startswith(('http:', 'https:')):
             assert (ROOT / target).is_file(), f'Broken README image: {target}'
-    banner = ROOT / 'docs/media/banner.svg'
-    tree = ET.parse(banner)
-    assert tree.getroot().get('viewBox') == '0 0 1400 440'
-    assert 'docs/media/banner.svg' in readme
+    banner = ROOT / 'docs/media/banner.png'
+    with Image.open(banner) as image:
+        assert image.format == 'PNG'
+        assert image.width >= 1200, 'Banner must be readable at README width'
+        assert 2.5 <= image.width / image.height <= 3.3, 'Banner must use a panoramic layout'
+        image.verify()
+    assert 'docs/media/banner.png' in readme
     for profile, size in [('vx8350', (176, 220)), ('n7705', (320, 240))]:
         gif = ROOT / f'docs/media/gameplay-{profile}.gif'
         assert str(gif.relative_to(ROOT)) in readme
