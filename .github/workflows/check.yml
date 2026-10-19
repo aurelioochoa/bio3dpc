@@ -1,0 +1,22 @@
+name: Source and publishing checks
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Check for game files and credentials
+        run: python tools/check_publish.py
+      - name: Check README media
+        run: python tools/check_publish.py --media
+      - name: Run tests without original game files
+        run: python -m pytest -q

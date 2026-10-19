@@ -1,0 +1,240 @@
+{
+  "play": {
+    "size": [
+      514,
+      133
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "secondary": {
+    "size": [
+      408,
+      135
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "portrait-frame": {
+    "size": [
+      209,
+      297
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "landscape-frame": {
+    "size": [
+      402,
+      278
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "slider-track": {
+    "size": [
+      525,
+      74
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "slider-thumb": {
+    "size": [
+      134,
+      210
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "toggle-track": {
+    "size": [
+      523,
+      167
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "toggle-knob": {
+    "size": [
+      265,
+      262
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "radio-on": {
+    "size": [
+      179,
+      180
+    ],
+    "source": "bathysphere-controls-source.png"
+  },
+  "radio-off": {
+    "size": [
+      179,
+      180
+    ],
+    "source": "bathysphere-controls-source.png; center covered by live unselected indicator"
+  },
+  "icon-settings": {
+    "size": [
+      436,
+      431
+    ],
+    "source": "bathysphere-icons-source.png"
+  },
+  "icon-folder": {
+    "size": [
+      457,
+      356
+    ],
+    "source": "bathysphere-icons-source.png"
+  },
+  "arrow-left": {
+    "size": [
+      309,
+      389
+    ],
+    "source": "bathysphere-icons-source.png"
+  },
+  "icon-mouse": {
+    "size": [
+      313,
+      426
+    ],
+    "source": "bathysphere-icons-source.png"
+  },
+  "arrow-right": {
+    "size": [
+      309,
+      389
+    ],
+    "source": "bathysphere-icons-source.png; mirrored arrow"
+  },
+  "logo": {
+    "size": [
+      1828,
+      799
+    ],
+    "source": "bathysphere-logo-source.png"
+  },
+  "preview-portrait": {
+    "size": [
+      123,
+      174
+    ],
+    "source": "docs/design-concepts/01-bathysphere.png"
+  },
+  "preview-landscape": {
+    "size": [
+      268,
+      176
+    ],
+    "source": "docs/design-concepts/01-bathysphere.png"
+  },
+  "lamp-00": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-01": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-02": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-03": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-04": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-05": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-06": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-07": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-08": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-09": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-10": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-11": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-12": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-13": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-14": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  },
+  "lamp-15": {
+    "size": [
+      144,
+      208
+    ],
+    "source": "procedural alpha lighting mask"
+  }
+}

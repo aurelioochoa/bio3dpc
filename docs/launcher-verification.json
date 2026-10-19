@@ -1,0 +1,13 @@
+{
+  "displayed_fps": 59.9,
+  "decoded_queue_limit": 1,
+  "control_settings": "keyboard capture, sensitivity, invert Y, persistence, reset, 620x460 and 760x740",
+  "installation": "guide, verification, saved paths, 780x700 and 600x560",
+  "1440x800": "side by side",
+  "900x650": "side by side",
+  "640x800": "stacked",
+  "760x540": "stacked",
+  "1152x768": "side by side",
+  "callback_errors": 0,
+  "controls": "editions, slider, arrows, audio, keyboard, installation, general and control settings, saves, disabled/pressed buttons"
+}

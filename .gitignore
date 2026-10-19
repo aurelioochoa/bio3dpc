@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Local run artifacts: screenshots, service traces, dumped sound buffers.
+# (Game data never belongs in this repository - see README.)
+*.png
+!docs/design-concepts/*.png
+!docs/launcher-preview.png
+!docs/launcher-narrow-preview.png
+!docs/installation-preview.png
+!docs/controls-preview.png
+!docs/media/*.png
+!bio3dpc/ui_assets/*.png
+!bio3dpc/ui_assets/controls/*.png
+*.log
+*.jsonl
+*.wav
+*.mid
+*.sf2
+
+# Local verification metadata.
+.unlazy/
+.unlazy-hook-state.json
+.claude/settings.local.json
+/GATES.md
+/PLAN.md
+/docs/*-gates.md
+
+# User-acquired originals may be kept locally but never distributed.
+bio3d_versions/
+bioshock3d_game_files/
+*.mod
+*.mif
+*.dat
+*.idx
+*.dll
+*.exe
+*.so
+*.dylib
+*.bin
+*.rom
+*.qcp
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.bz2
+*.xz
+
+# Local credentials, preferences, saves and editor files.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+launcher.json
+saves/
+.idea/
+.vscode/
+.DS_Store
+*~

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 440" role="img" aria-labelledby="title desc">
+  <title id="title">bio3dpc — Return to Rapture</title>
+  <desc id="desc">An Art Deco brass frame and a porthole overlooking an underwater skyline. BioShock 3D, the BREW mobile game, preserved for Linux.</desc>
+  <defs>
+    <linearGradient id="sea" x2="1" y2="1">
+      <stop stop-color="#102d35"/><stop offset=".55" stop-color="#081c24"/><stop offset="1" stop-color="#040f16"/>
+    </linearGradient>
+    <linearGradient id="brass" x2="1" y2="1">
+      <stop stop-color="#edd7a0"/><stop offset=".5" stop-color="#a77c46"/><stop offset="1" stop-color="#695034"/>
+    </linearGradient>
+    <radialGradient id="water"><stop stop-color="#2d6564"/><stop offset="1" stop-color="#0b2833"/></radialGradient>
+    <pattern id="windows" width="18" height="22" patternUnits="userSpaceOnUse">
+      <rect width="18" height="22" fill="#0b2029"/><rect x="7" y="7" width="3" height="7" fill="#cba567" opacity=".65"/>
+    </pattern>
+    <clipPath id="porthole"><circle cx="1126" cy="220" r="153"/></clipPath>
+  </defs>
+  <rect width="1400" height="440" fill="url(#sea)"/>
+  <g fill="none" stroke="url(#brass)">
+    <path d="M50 18H1350L1382 50V390L1350 422H50L18 390V50Z" opacity=".8"/>
+    <path d="M58 29H1342L1371 58V382L1342 411H58L29 382V58Z" opacity=".35"/>
+    <path d="M44 94V44H94M1306 44H1356V94M44 346V396H94M1306 396H1356V346" stroke-width="3"/>
+    <path d="M82 101H742M82 335H742" opacity=".45"/>
+    <path d="M772 58V382M782 72V368" opacity=".2"/>
+  </g>
+  <g fill="#cfb47d" font-family="'DejaVu Sans', Arial, sans-serif">
+    <text x="82" y="82" font-size="13" letter-spacing="5">MOBILE GAME PRESERVATION</text>
+    <text x="76" y="216" fill="#f2e7ce" font-size="110" font-weight="700" letter-spacing="-6">bio3dpc</text>
+    <text x="83" y="265" font-size="23" letter-spacing="6">RETURN TO RAPTURE</text>
+    <text x="83" y="305" fill="#9bb9b7" font-size="17">BioShock 3D · Original ARM code · Linux PC</text>
+    <text x="83" y="369" font-size="12" letter-spacing="2.5">BREW RUNTIME</text>
+    <circle cx="268" cy="364" r="2"/>
+    <text x="292" y="369" font-size="12" letter-spacing="2.5">MOUSE + KEYBOARD</text>
+    <circle cx="523" cy="364" r="2"/>
+    <text x="548" y="369" font-size="12" letter-spacing="2.5">TWO EDITIONS</text>
+  </g>
+  <path d="M806 220H918M862 164V276" fill="none" stroke="#bb9861" opacity=".3"/>
+  <path d="m853 220 9-9 9 9-9 9Z" fill="#bb9861"/>
+  <circle cx="1126" cy="220" r="174" fill="#08161c" stroke="url(#brass)" stroke-width="5"/>
+  <circle cx="1126" cy="220" r="163" fill="none" stroke="#7b6445"/>
+  <g clip-path="url(#porthole)">
+    <rect x="960" y="55" width="333" height="333" fill="url(#water)"/>
+    <path d="M994 56 1116 390H1162L1080 56M1172 56 1200 390H1223L1223 56" fill="#79b5aa" opacity=".07"/>
+    <g fill="url(#windows)" stroke="#466b68" stroke-width="1">
+      <path d="M972 360V209H1005V188H1038V360Z"/>
+      <path d="M1029 376V246H1048V232H1094V376Z"/>
+      <path d="M1087 376V163H1101V147H1115V125H1127V147H1141V163H1156V376Z"/>
+      <path d="M1152 378V235H1167V214H1206V235H1220V378Z"/>
+      <path d="M1222 376V180H1235V166H1261V180H1279V376Z"/>
+    </g>
+    <path d="M1001 255Q1060 227 1097 237M1146 274Q1199 252 1232 257" fill="none" stroke="#7b9984" stroke-width="5" opacity=".45"/>
+    <path d="M1121 127V93" stroke="#d9ba7e"/>
+    <g fill="none" stroke="#95c2b8" opacity=".3">
+      <circle cx="1038" cy="136" r="4"/><circle cx="1025" cy="111" r="2"/><circle cx="1189" cy="134" r="3"/><circle cx="1196" cy="107" r="5"/>
+    </g>
+    <path d="M962 350Q1126 314 1291 354V400H962Z" fill="#071820" opacity=".8"/>
+  </g>
+  <g fill="#181f20" stroke="#b99560" stroke-width="2">
+    <circle cx="1126" cy="53" r="4"/><circle cx="1126" cy="387" r="4"/>
+    <circle cx="959" cy="220" r="4"/><circle cx="1293" cy="220" r="4"/>
+    <circle cx="1008" cy="102" r="4"/><circle cx="1244" cy="102" r="4"/>
+    <circle cx="1008" cy="338" r="4"/><circle cx="1244" cy="338" r="4"/>
+  </g>
+</svg>
