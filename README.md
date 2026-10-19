@@ -1,384 +1,150 @@
-![BioShock 3D — BREW PC PORT. A realistic brass Bathysphere window overlooking Rapture.](docs/media/banner.png)
+# BioShock 3D PC Port
 
-# bio3dpc
+**English** · [Español](README.es.md)
 
-[Gameplay](#gameplay) · [Quick start](#quick-start) · [Game files](#installation-bring-your-own-game-files) · [Controls](#playing) · [Development](#development)
+![BioShock 3D — BREW PC PORT, with a Bathysphere overlooking Rapture](docs/media/banner.png)
 
-Preserve and play **BioShock 3D**, the 2010 BREW mobile game, on a Linux PC.
-The native **176×220 portrait LG VX8350** and **320×240 landscape Nokia 7705**
-builds have separate profiles and matching applet class IDs. The original ARM
-code runs through Unicorn while Python supplies the BREW runtime.
+Preserve and play **BioShock 3D**, the 2010 BREW mobile game, on a Linux PC. `bio3dpc` executes the original ARM code through Unicorn while Python supplies the BREW runtime, desktop controls, audio and a tkinter window.
 
-**Bring your own game files.** Original game modules and data are excluded
-from this repository; the launcher does not download them.
+**Bring your own game:** original BREW modules and data are not included or downloaded. The **LG VX8350 portrait** and **Nokia 7705 landscape** editions have separate profiles. Both reach gameplay; full campaign completion has not been verified, and the Nokia collection lacks later campaign packs.
 
-The original ARM binary is executed unmodified on
-[Unicorn](https://www.unicorn-engine.org/): `bio3dpc` plays the part of the
-phone (BREW kernel services, display, files, sound, keypad) and shows the
-device framebuffer in a tkinter window.
+[Gameplay](#gameplay) · [Quick start](#quick-start) · [Game files](#game-files) · [Controls](#controls) · [Development](#development)
 
 ## Gameplay
 
-Actual framebuffer recordings from the original BREW modules running in
-bio3dpc, enlarged 2× with nearest-neighbor scaling. The short, silent loops
-show portrait gameplay and the landscape opening scene; launcher artwork is
-separate from these captures.
+Actual framebuffer recordings, enlarged 2× with nearest-neighbor scaling. These silent loops show the game running, separately from generated launcher artwork.
 
-| LG VX8350 · 176×220 gameplay | Nokia 7705 · 320×240 opening scene |
+| LG VX8350 · 176×220 portrait | Nokia 7705 · 320×240 landscape |
 | --- | --- |
-| ![Actual LG VX8350 gameplay with the wrench and HUD](docs/media/gameplay-vx8350.gif) | ![Actual Nokia 7705 opening first-person scene with the HUD](docs/media/gameplay-n7705.gif) |
+| ![Portrait gameplay with wrench and HUD](docs/media/gameplay-vx8350.gif) | ![Landscape opening scene with HUD](docs/media/gameplay-n7705.gif) |
 | v1.4.1.1 · seven matching campaign packs required | v1.5.2.1 · only two campaign packs available |
 
-Both editions reach first-person gameplay. Full campaign completion has not
-been verified, and the Nokia collection is missing later campaign packs.
-See [build coverage](docs/builds.md) for the exact limits.
+See [build coverage](docs/builds.md) for the exact limits of each edition.
+
+## Requirements
+
+- **Linux x86_64**, Python 3 with **tkinter**, and GNU Make. Development has used Python 3.14.
+- Python dependencies installed through `requirements.txt`, including Unicorn and Capstone.
+- **FFmpeg** and **`paplay`** on `PATH` for sound effects and voices.
+- **FluidSynth** and a **SoundFont** for MIDI music. Without a SoundFont, music remains silent but keeps its timing.
+
+Place a `.sf2` file in `~/.local/share/soundfonts/` or set `BIO3DPC_SOUNDFONT`. Missing audio tools do not prevent silent play. See [audio details](docs/advanced-usage.md#midi).
 
 ## Quick start
 
-On Linux, install Python 3, tkinter and `make`, then:
+Install Python, tkinter and Make, then:
 
-```bash
+```sh
 git clone https://github.com/aurelioochoa/bio3dpc.git
 cd bio3dpc
 make venv
 ./bio3dpc.sh
 ```
 
-Open **Installation**, select your own matching BREW game files, verify them,
-then choose **Play**. FFmpeg and `paplay` enable sound effects;
-FluidSynth and a SoundFont additionally enable MIDI music.
+Choose your edition, open **Installation**, select your matching BREW module and data folder, and choose **Verify files**. After successful verification, use **Save and return → Play**.
 
-![Bathysphere launcher with edition selection and PC controls](docs/launcher-preview.png)
+For an applications-menu entry and the `~/.local/bin/bio3dpc` command:
 
-Game binaries and game data are copyrighted and are **not** part of this
-repository. Point the tools at your own copy of the phone build:
-
-```
-tools/play.py --mod "…/bio3d.mod" --data-dir "…/data/vx8350"
+```sh
+make install-desktop
 ```
 
-The **Bathysphere launcher** uses generated brass artwork with a **BREW PC PORT**
-title, edition selection, installation guidance, a live window-scale slider, audio switch and saved-game
-access. Resize the window freely: narrow windows stack the artwork and controls,
-with scrolling when needed. Tab moves between controls; arrows adjust the slider
-and switch, and Enter or Space activates a focused button.
+Keep the checkout in place. `make uninstall-desktop` removes the entry and installed command while preserving preferences, saves and original files.
 
-The local twelve-second underwater loop runs at 60 fps with smooth refraction
-and independent, randomly timed lamp flicker. Animation pauses while the game
-runs. Settings includes an animation toggle; without FFmpeg the same controls
-remain available over a static background.
+## Game files
 
-```
-make venv
-./bio3dpc.sh
-make install-desktop     # applications-menu entry and ~/.local/bin/bio3dpc
-```
+Supply extracted **BioShock 3D BREW game files**, keeping their original names:
 
-Choose your own game files in **Installation**. Local original files are
-ignored by Git. The launcher verifies the module and starter data hashes so files from unrelated handset
-builds are not silently mixed.
-
-PC launches keep saves under `~/.local/state/bio3dpc/saves/<module-sha256>/`
-(or `XDG_STATE_HOME`) through a writable overlay. Portrait and landscape saves
-stay separate, and original files remain read-only. Launcher preferences live
-under `~/.config/bio3dpc/`. `make uninstall-desktop` removes the menu entry and
-installed command while preserving preferences, saves and game files.
-
-The Nokia landscape release contains only `bio1.dat` and `bio2.dat`; its later
-campaign packs are missing. See [build coverage and selection rationale](docs/builds.md).
-
-## Setup
-
-Python 3 with tkinter (stdlib; developed on 3.14) on **Linux x86_64**. Audio playback uses
-`ffmpeg` and `paplay` from `PATH`; MIDI music additionally wants `fluidsynth`
-and a SoundFont (see *MIDI*). Everything degrades gracefully when a piece is
-missing.
-
-```
-make venv            # .venv + requirements.txt (unicorn, capstone, pytest)
-make                 # list the targets
-```
-
-The default build/data paths live in `tools/boot_check_paths.py`; override them
-per run with `make play GAME_DIR="…/<build>" DATA="…/data/vx8350"` or the
-`BIO3DPC_GAME_DIR` / `BIO3DPC_DATA_DIR` environment variables.
-
-## Installation: bring your own game files
-
-The game is **not included or downloaded**. Supply your own extracted
-**BioShock 3D BREW game files**: `bio3d.mod` is the executable module,
-`bio3d.idx` is the asset index, and `bio1.dat`, `bio2.dat`, etc. contain game
-data. “Game files” or “BREW module and data” are the terms used here.
-Android APKs, iPhone IPAs, Java JARs and console ROM images are unsupported.
-Extract any archive before selecting files; keep the original filenames.
-
-1. Run `make venv`, then `./bio3dpc.sh` to open the launcher. Optionally run
-   `make install-desktop` for a menu entry and the `bio3dpc` command.
-2. Choose **LG VX8350 · Portrait** (v1.4.1.1) or **Nokia 7705 · Landscape**
-   (v1.5.2.1) in the main window.
-3. Open **Installation**. Browse directly to your **Original BREW module (.mod)**
-   and **Matching game data folder (.dat + .idx)**. You can keep these anywhere
-   on your computer; no particular collection folder name is required.
-4. Choose **Verify files**. Fix any missing-file or mismatched-build errors,
-   then **Save and return** and **Play**. Verification checks module and starter
-   asset hashes and required pack names; it does not establish full campaign coverage.
-
-Portrait needs `bio1.dat` through `bio7.dat` and the matching `bio3d.idx`.
-Select the directory containing those files as the data folder. The Nokia
-landscape release has only its first two packs; later
-campaign data is missing. Other handset builds' packs are not substitutes.
-See [build coverage](docs/builds.md) for the limits of each edition.
-
-bio3dpc **uses files in place**. It saves the selected paths without copying
-or changing the game
-files. Keep the collection folder or external drive available while playing.
-Saves go to `~/.local/state/bio3dpc/saves/<module-sha256>/` (or
-`$XDG_STATE_HOME/bio3dpc/saves/<module-sha256>/`), separately for each build.
-Preferences are stored under `~/.config/bio3dpc/` (or `$XDG_CONFIG_HOME`).
-
-If verification fails, confirm the selected edition, module and data folder
-belong to the same supported build. Selecting the collection's parent folder
-as the data folder will not work: choose the directory containing the `.dat`
-and `.idx` files. Missing files must come from your own matching copy.
-
-## Status
-
-Working, verified end-to-end:
-
-* boots to the splash → `ENABLE SOUND?` → BioShock logo → main menu
-* `NEW GAME` plays the intro (loading card, crash cutscene with subtitles,
-  swim sections) and reaches **first-person gameplay with the HUD**
-* keyboard input drives menus, cutscenes and gameplay
-* the game saves: `savedata.dat` appears in its per-build save overlay and the main
-  menu grows a `CONTINUE` entry on the next boot (preferences persist too, so
-  the sound question is asked only once)
-* audio: QCP/QCELP sounds decode with ffmpeg and play through PulseAudio;
-  MIDI music renders through fluidsynth when a SoundFont is present, and its
-  duration is parsed in Python either way (see *MIDI*)
-* earlier VX8350 measurements put intro and menus at 100–200 guest ticks per wall second; the
-  tkinter frontend presents a frame in ≈2.5 ms; gameplay runs ≈19 ticks/s
-  (≈38 fps) and is limited by the emulated CPU doing the game's own software
-  rasterisation (see `docs/research.md` §7.5)
-
-Known gaps:
-
-* no texture/BMP class (`WINBMP`, `0x01004001`): the game draws with its own
-  renderer, so this has not been needed yet
-* `MEDIAUTIL` (`0x0100550d`) and `WEB` (`0x01005000`) instances are refused
-* MIDI music needs a SoundFont: put one in `~/.local/share/soundfonts/` or set
-  `BIO3DPC_SOUNDFONT` (this machine has `TimGM6mb.sf2` there); without one the
-  music plays silently but keeps the correct timing
-* additional handset builds are inventoried but not qualified for launch;
-  the LG VX10000 landscape binary also requires an EGL/GLES implementation
-
-## Playing
-
-```
-.venv/bin/python tools/play.py                     # window, default paths
-.venv/bin/python tools/play.py --profile n7705      # native landscape build
-.venv/bin/python tools/play.py --scale 2           # smaller window
-BIO3DPC_AUDIO=0 .venv/bin/python tools/play.py     # silent
-```
-
-Close the window (or hit Ctrl+C in the terminal) to quit.
-
-The bindings follow the [original PC manual](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/7670/manuals/manual_en.pdf)
-for actions available in this mobile build. The table shows the defaults;
-use **Settings → Controls** in the launcher to change keyboard bindings:
-
-| PC control | action |
+| Edition | Module and matching data |
 | --- | --- |
-| W / S | move forward / backward; up / down in menus |
-| A / D | strafe left / right; left / right in menus |
-| mouse | turn and look up/down, without changing movement direction |
-| LMB | fire the current weapon/plasmid; confirm in menus |
-| RMB | toggle between the current weapon and plasmid; back in menus |
-| E | use / pick up; confirm prompts |
-| R / F | reload or refill EVE / use first aid |
-| 1–5 | select an owned weapon (wrench, pistol, machine gun, shotgun, grenade launcher) |
-| F1–F3 | select an owned plasmid in gameplay |
-| wheel up / down | next / previous owned weapon or plasmid in the current mode |
-| Q / middle click | next available ammunition type |
-| Enter / Space / KP_Enter | OK / confirm prompts |
-| Esc / Backspace | pause / back |
-| Tab | release / capture the pointer |
-| numeric keypad 0–9 | original phone keypad, with Num Lock on or off |
-| F1–F4 in menus | phone soft keys; F2 skips cutscenes |
-| F10 / F11 | phone soft keys 1 / 2 in every context (F11 also skips cutscenes) |
-| F5–F7 | phone function keys 1–3 |
-| arrows | phone d-pad; up/down also aim in gameplay |
-| Home / End, `*` / `#` | phone SEND / END, star / pound |
+| LG VX8350 · v1.4.1.1 | `bio3d.mod`, `bio3d.idx`, and `bio1.dat` through `bio7.dat` |
+| Nokia 7705 · v1.5.2.1 | Matching `bio3d.mod`, `bio3d.idx`, `bio1.dat` and `bio2.dat`; later campaign packs are missing |
 
-This is the mobile game, with five weapons and three plasmid slots. There are
-no separate PC bindings for jump, zoom, a radial selection screen, or quicksave/quickload.
-Space sends the phone's OK key; the original help also labels OK as crouch.
-The top number row selects equipment in gameplay;
-use the numeric keypad when following the phone's numbered hints or hacking
-controls. Equipment must have been acquired before it can be selected.
+In **Installation**, select **Original BREW module (.mod)** and the **Matching game data folder (.dat + .idx)**. Choose the folder containing the actual data files, rather than its parent. Verification checks module and starter asset hashes and required pack names; it does not establish full campaign coverage. Files from other handset builds are not substitutes.
 
-### Control settings
+**Files are used in place:** the launcher remembers their paths without copying or modifying them. Keep the source folder or external drive available while playing. APK, IPA, JAR and console ROM formats are unsupported. See [build identities and coverage](docs/builds.md) and [detailed installation guidance](docs/advanced-usage.md#installation-bring-your-own-game-files).
 
-![Controls settings with keyboard bindings and mouse preferences](docs/controls-preview.png)
+## Launcher
 
-Open **Controls** on the launcher (or **Settings → Controls**) to enable mouse
-look, adjust sensitivity from **0.1× to 5.0×** with the slider or number field,
-invert the vertical mouse axis, or rebind movement, actions,
-weapons and plasmid slots. Optional keyboard bindings for firing and switching
-weapon/plasmid start unbound; mouse buttons keep their default actions.
+![Bathysphere launcher with edition selection and controls](docs/launcher-preview.png)
 
-Click an action's key button and press the replacement key. **Backspace** clears
-that binding; **Escape** cancels capture. Letters, numbers, arrows, Page Up/Down,
-Insert/Delete and F1–F3/F8/F9/F12 are supported. Each key can have one action;
-clear an existing assignment before reusing it. **Reset controls** restores all
-keyboard and mouse defaults. **Save and return** persists changes for the next
-game launch, including launches from `make play` and `tools/play.py`.
+The Bathysphere launcher provides edition selection, installation verification, a window-scale slider, an audio switch and saved-game access. Its generated underwater artwork animates when FFmpeg is available; animation pauses during play and can be disabled in Settings.
 
-Enter/Space, Escape/Backspace, Tab, the numeric keypad and F4–F7/F10/F11 retain
-their fixed functions. Rebound movement/use keys also navigate menus; equipment
-selection still requires owned items. Settings are stored in
-`~/.config/bio3dpc/launcher.json` (or `$XDG_CONFIG_HOME/bio3dpc/launcher.json`).
+Open **Controls** or **Settings → Controls** to rebind keyboard actions, enable mouse look, set sensitivity from **0.1× to 5.0×**, or invert vertical movement. Click a binding and press a new key; Backspace clears it and Escape cancels capture. **Reset controls** restores defaults; **Save and return** saves changes for future launcher and CLI sessions.
 
-Mouse look is enabled by default. Command-line overrides affect that session:
-`--no-mouse` / `--mouse`, `--mouse-sens 2.0` (double sensitivity), and
-`--invert-y` / `--no-invert-y`. For example:
+Tab navigates launcher controls, arrows adjust sliders and switches, and Enter or Space activates buttons. Narrow windows stack artwork and controls with scrolling. See [control settings](docs/advanced-usage.md#control-settings) and [launcher artwork and animation](docs/launcher-art.md).
 
-```bash
-.venv/bin/python tools/play.py --mouse-sens 2.0 --invert-y
-```
+## Controls
 
-In game menus the pointer stays visible. Hover highlights a row; left click
-activates it, right click goes back, and the wheel moves through entries or
-scrolls text. In Options, hover Volume and use the wheel to adjust it.
-Blank areas of a menu do not activate the selected row.
-
-During gameplay the pointer is hidden, confined to the game window on X11/Xwayland,
-and recenters near the edges so fast turns keep working.
-Tab frees it; a click captures it again without firing. Losing focus releases
-every input. Escape releases the pointer when pausing, and resuming gameplay
-captures it again.
-
-On the verified portrait and landscape builds, relative mouse travel calls the
-game's native camera rotation methods once per host slice, including fractional
-steps (52 horizontal or 64 vertical host pixels per original look step at 1×
-sensitivity). Travel is consumed immediately, so a flick leaves no queue of
-turn-key holds after the mouse stops. Pitch keeps the native viewing limits.
-The default mouse speed is one quarter of the earlier rate. Walking forward
-or backward preserves mouse pitch; the phone's automatic leveling is suppressed
-while mouse look is enabled. Native keypad look keeps automatic leveling when
-mouse look is disabled.
-Unknown builds retain the phone-key fallback. Physical keys and mouse buttons
-share ownership of guest keys; releasing one alias does not cancel another.
-Even a short click waits until the guest queries that key.
-
-Context and equipment selection use separate hash-guarded VX8350 and Nokia profiles.
-Other module images retain native phone-key bindings without reading unknown
-guest structures. Equipment selection sends the game's own cycle keys and
-waits for its equip animation; the emulator does not alter inventory or original
-module files. The [mobile control reference](https://bioshock.fandom.com/wiki/BioShock_3D_%28Mobile_Game%29)
-and live guest checks establish the phone bindings.
-
-In game the build prints its own hints: `PRESS (2) TO MOVE AHEAD`, `(8) TO MOVE
-BACK`, `PRESS OK …` at the swimming/lighthouse/bathysphere prompts and
-`SKIP [RSK]` on cutscenes — F2 or F11 skips the intro, which otherwise takes a few
-minutes of `OK`s and one `UP` (hold it at `PRESS UP TO SWIM UP`).
-
-## Layout
-
-| path | what it is |
+| Input | Action |
 | --- | --- |
-| `bio3dpc/machine.py` | Unicorn ARM core, guest calls, traps, guest allocator |
-| `bio3dpc/services.py` | BREW classes: IShell, IDisplay, IBitmap, IFileMgr, IMemAStream, IImage(PNG), ISoundPlayer, … |
-| `bio3dpc/boot.py` | boot lifecycle: load module, create applet, `EVT_APP_START`, pump |
-| `bio3dpc/controls.py` | verified guest context and owned equipment (read only) |
-| `bio3dpc/input_settings.py` | saved mouse preferences and keyboard bindings |
-| `bio3dpc/frontend.py` | tkinter window: framebuffer → PPM image, keyboard/mouse input → `EVT_KEY` |
-| `bio3dpc/profiles.py` | original build identities, dimensions, class IDs and matching assets |
-| `bio3dpc/launcher.py`, `bathysphere.py` | live Bathysphere edition selector and settings |
-| `bio3dpc/animation.py` | asynchronous, bounded local video playback |
-| `bio3dpc/desktop.py` | per-user desktop installation and removal |
-| `bio3dpc/audio.py` | QCP/MIDI → WAV (ffmpeg / fluidsynth) → `paplay` |
-| `bio3dpc/midi.py` | Standard MIDI File duration parser (tempo map) |
-| `bio3dpc/png.py` | pure-Python PNG decoder (the game's font arrives as PNG) |
-| `Makefile` | `make` entry points: venv, test, play, screenshots, disassembly |
-| `tools/play.py` | play in a window |
-| `tools/key_test.py` | scripted sessions with screenshots |
-| `tools/auto_play.py` | presses keys whenever the screen settles |
-| `tools/screenshot.py` | dump the device bitmap to a PNG |
-| `tools/frontend_check.py` | headless smoke test of window + keys |
-| `tools/mouse_check.py` | smoke test of mouse capture, look deltas, warps, buttons |
-| `tools/input_check.py` | real Tk and guest gameplay input checks, with isolated saves |
+| W / S | Forward / backward; up / down in menus |
+| A / D | Strafe left / right; left / right in menus |
+| Mouse movement | Turn and look up/down |
+| Left mouse | Fire weapon/plasmid; confirm in menus |
+| Right mouse | Switch weapon/plasmid; back in menus |
+| E | Use / pick up; confirm prompts |
+| R / F | Reload or refill EVE / use first aid |
+| 1–5 | Select an owned weapon |
+| F1–F3 in gameplay | Select an owned plasmid |
+| Mouse wheel | Cycle owned equipment in the current mode |
+| Q / middle mouse | Cycle available ammunition |
+| Enter / Space / keypad Enter | Phone OK / confirm |
+| Escape / Backspace | Pause / back |
+| Tab | Release / capture pointer |
+| Numeric keypad 0–9 | Original phone number keys |
+| F1–F4 in menus | Phone soft keys; F2 skips cutscenes |
+| F10 / F11 | Phone soft keys 1 / 2; F11 also skips cutscenes |
+| F5–F7 | Phone function keys 1–3 |
+| Arrows | Phone directional pad; up/down also aim during gameplay |
+| Home / End, `*` / `#` | Phone SEND / END, star / pound |
+
+Equipment must be acquired before selection. The top number row selects equipment; use the numeric keypad for phone-number hints and hacking. Space sends phone OK, which the original help also labels as crouch. This mobile game has no separate bindings for jump, zoom, radial selection or quicksave/quickload.
+
+Mouse look is enabled by default. Tab releases the captured pointer; clicking recaptures it without firing. Focus loss releases inputs. Menus support hover, click, right-click back and wheel navigation. Command-line overrides include `--no-mouse`, `--mouse-sens 2.0` and `--invert-y`.
+
+For full binding rules, camera behavior and introductory phone prompts, see [the detailed controls reference](docs/advanced-usage.md#playing).
+
+## Saves and settings
+
+| Content | Default location |
+| --- | --- |
+| Original game files | Your selected module and data paths; kept read-only |
+| Per-build save overlay | `~/.local/state/bio3dpc/saves/<module-sha256>/` |
+| Launcher and control settings | `~/.config/bio3dpc/launcher.json` |
+| Auto-detected SoundFonts | `~/.local/share/soundfonts/*.sf2` |
+| Development captures and logs | `/tmp/opencode/bio3dpc` (`OUT` override) |
+
+`XDG_STATE_HOME` and `XDG_CONFIG_HOME` override the corresponding save and settings bases. Portrait and landscape saves remain separate. The game writes `savedata.dat` to its overlay and offers **CONTINUE** on the next boot. Original files remain unchanged.
+
+## Status and limitations
+
+Both supported profiles reach first-person gameplay. Observed checks include startup, introduction, menus, keyboard input, persistent saves, QCP/QCELP sound decoding and optional MIDI rendering. Full campaign completion is unverified. **The Nokia collection only has its first two campaign packs.**
+
+Earlier VX8350 measurements recorded roughly 19 gameplay ticks/s (about 38 fps); the emulated CPU performs the game's software rendering. Those are historical measurements, not a performance guarantee. Additional handset builds are inventoried but not qualified; LG VX10000 also needs EGL/GLES support. Some BREW classes remain unimplemented or refused.
+
+See [coverage and selection rationale](docs/builds.md), [observed runtime results](docs/advanced-usage.md#status), and [research notes](docs/research.md).
 
 ## Development
 
-Before publishing changes, stage the intended files and run
-`.venv/bin/python tools/check_publish.py`. It checks the Git index for game
-files, archives, local credentials, oversized files and common secret patterns.
-GitHub Actions repeats that audit, checks the README media and runs the tests
-without original game files. See [publishing notes](docs/publishing.md).
+| Command | Purpose |
+| --- | --- |
+| `make` | List available targets |
+| `make venv` | Create the virtual environment and install dependencies |
+| `make launcher` | Open the launcher |
+| `make play` / `make landscape` | Launch portrait / landscape gameplay |
+| `make test` | Run tests without game data |
+| `make smoke` / `make mouse` | Check window/input / mouse behavior with game files |
+| `make input` | Exercise real gameplay input with isolated saves |
+| `make shot SECS=30` | Capture a frame after 30 seconds |
+| `make clean` | Remove development caches |
 
-To recreate the README gameplay captures from your own supported collection:
+Override paths with `make play GAME_DIR="/path/to/build" DATA="/path/to/data"` or `BIO3DPC_GAME_DIR` and `BIO3DPC_DATA_DIR`. Standalone tools use `.venv/bin/python tools/play.py --mod "/path/to/bio3d.mod" --data-dir "/path/to/data"`.
 
-```bash
-.venv/bin/python tools/capture_gameplay.py
-.venv/bin/python tools/check_publish.py --media
-```
+Before publishing, stage intended files and run `python3 tools/check_publish.py`; `python3 tools/check_publish.py --media` validates README media. CI runs the audit and tests without original files. See [publishing notes](docs/publishing.md), [detailed tools and source layout](docs/advanced-usage.md), and [reverse-engineering workflow](docs/rea-workflow.md).
 
-Capture uses temporary saves and the same camera methods as mouse look.
+## License and credits
 
-`make` (no arguments) lists everything; the common ones:
+BioShock and BioShock 3D belong to their respective rights holders. This unofficial preservation project has no affiliation or endorsement. Original modules, data, SDK headers, extracted sounds and fonts are not distributed here. Unicorn, Pillow and other dependencies retain their licenses.
 
-```
-make test                                  # unit and regression tests
-make play                                  # window; SCALE=2 for a smaller one
-make smoke                                 # window + keys + frames smoke test
-make mouse                                 # mouse capture/look/warp smoke test
-make input                                 # real gameplay controls; isolated saves
-make shot SECS=30                          # screenshot after 30 s
-make series SECS=40                        # screenshot every 5 s
-make keys AT=8 KEYS=SELECT,WAIT,SOFT2      # scripted session
-make auto PLAN=SELECT,SELECT,SELECT,UP     # press keys when the screen settles
-make boot SECS=10                          # boot report + service-call histogram
-make disasm OFFSET=0x5a658                 # guest disassembly
-make clean                                 # caches; clean-artifacts drops OUT
-```
-
-Artifacts land in `OUT` (`/tmp/opencode/bio3dpc` by default). Anything settable
-as a variable (`GAME_DIR`, `DATA`, `MOD`, `SECS`, `AT`, `KEYS`, `PLAN`, `SCALE`)
-can also be passed on the command line.
-
-The underlying tools still work standalone:
-
-```
-.venv/bin/python tools/screenshot.py --seconds 30 --out shot.png
-.venv/bin/python tools/key_test.py --at 8 --keys SELECT,WAIT --out /tmp/sess
-```
-
-`docs/research.md` collects the reverse-engineering notes (build layout, BREW
-ABI details, the event/key codes the game reacts to, and the open questions).
-Current build decisions are in `docs/builds.md`; the REA/Ghidra investigation
-and evidence IDs are in `docs/rea-workflow.md`. `docs/launcher-art.md` explains
-the generated artwork and reproducible FFmpeg video render. REA and its native
-analysis engines are development tools and are not needed to play.
-
-## MIDI
-
-The game's music is Standard MIDI (format 1). `bio3dpc` parses the tempo map
-to learn how long a tune runs — that is what `ISoundPlayer` needs to deliver
-`AEE_SOUNDPLAYER_DONE` — and renders it when a SoundFont is available:
-
-```
-BIO3DPC_SOUNDFONT=/usr/share/soundfonts/FluidR3_GM.sf2 .venv/bin/python tools/play.py
-```
-
-Without one the music is silent; sound effects and voices still play.  Any
-`*.sf2` under `~/.local/share/soundfonts/` is picked up automatically.
-
-## Credits and game files
-
-BioShock and BioShock 3D belong to their respective rights holders. This is
-an unofficial preservation project with no affiliation or endorsement.
-Original modules, data, SDK headers, extracted sounds and fonts are not
-distributed here. The README gameplay media consists of rendered captures;
-the banner and launcher artwork are generated, as documented in
-[banner art](docs/banner-art.md) and [launcher art](docs/launcher-art.md).
-Unicorn, Pillow and the other dependencies retain their own licenses.
+README gameplay media contains rendered captures. Banner and launcher artwork are generated; see [banner provenance](docs/banner-art.md) and [launcher provenance](docs/launcher-art.md).
