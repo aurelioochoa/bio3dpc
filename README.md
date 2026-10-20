@@ -4,6 +4,8 @@
 
 ## English
 
+> **Disclaimer:** `bio3dpc` is not a decompilation or a static recompilation of BioShock 3D. It is an effort to preserve the specific BREW copies for LG VX8350 v1.4.1.1 and Nokia 7705 v1.5.2.1 and make them playable on PC, currently targeting Linux x86_64. Unicorn executes each original ARM module, including its software renderer, while Python supplies BREW services, desktop controls, display and audio. You must supply your own matching modules and data. Full campaign playability is unverified; later Nokia campaign packs are missing.
+
 ![BioShock 3D — BREW PC PORT, with a Bathysphere overlooking Rapture](docs/media/banner.png)
 
 Preserve and play **BioShock 3D**, the 2010 BREW mobile game, on a Linux PC. `bio3dpc` executes the original ARM code through Unicorn while Python supplies the BREW runtime, desktop controls, audio and a tkinter window.
@@ -159,7 +161,7 @@ Override paths with `make play GAME_DIR="/path/to/build" DATA="/path/to/data"` o
 
 Before publishing, stage intended files and run `python3 tools/check_publish.py`; `python3 tools/check_publish.py --media` validates README media. CI runs the audit and tests without original files. See [publishing notes](docs/publishing.md), [detailed tools and source layout](docs/advanced-usage.md), and [reverse-engineering workflow](docs/rea-workflow.md).
 
-### License and credits
+### License
 
 The host's original source is licensed under [MIT](LICENSE). This excludes original game binaries, assets, trademarks and third-party dependencies.
 
@@ -167,7 +169,19 @@ BioShock and BioShock 3D belong to their respective rights holders. This unoffic
 
 README gameplay media contains rendered captures. Banner and launcher artwork are generated; see [banner provenance](docs/banner-art.md) and [launcher provenance](docs/launcher-art.md).
 
+### Credits
+
+- **Studio Tridev (IG Fun) and the original game's publishers and rights holders:** BioShock 3D, its ARM engine, software renderer, artwork and audio; see the [documented game history](docs/research.md).
+- **Unicorn contributors:** execution of the original BREW ARM modules.
+- **Python and Tcl/Tk contributors:** the BREW service implementations' host language and desktop gameplay window. **Pillow contributors:** launcher artwork scaling. **Capstone contributors:** development disassembly tools.
+- **FFmpeg, FluidSynth and PulseAudio contributors:** original sound/voice decoding, optional MIDI synthesis and audio playback through `paplay`. SoundFont creators retain credit and license terms for the separate fonts supplied by users.
+- **Project contributors and testers:** handset profiles, BREW compatibility services, PC controls, launcher and preservation documentation. See [banner provenance](docs/banner-art.md) and [launcher artwork credits](docs/launcher-art.md) for visual assets.
+
+Third-party components retain their own licenses. These acknowledgments do not imply affiliation with or endorsement by the original game's creators or rights holders.
+
 ## Español
+
+> **Aviso:** `bio3dpc` no es una descompilación ni una recompilación estática de BioShock 3D. Es un esfuerzo para preservar las copias específicas de BREW para LG VX8350 v1.4.1.1 y Nokia 7705 v1.5.2.1 y permitir jugarlas en PC, actualmente en Linux x86_64. Unicorn ejecuta cada módulo ARM original, incluido su renderizador por software, mientras Python proporciona servicios de BREW, controles de escritorio, pantalla y audio. Debes aportar tus propios módulos y datos correspondientes. La jugabilidad de toda la campaña sigue sin verificarse; faltan los paquetes posteriores de Nokia.
 
 ![BioShock 3D: port de BREW para PC, con una batisfera frente a Rapture](docs/media/banner.png)
 
@@ -324,10 +338,20 @@ Indica otras rutas con `make play GAME_DIR="/ruta/a/version" DATA="/ruta/a/datos
 
 Antes de publicar, añade los archivos previstos al índice y ejecuta `python3 tools/check_publish.py`; `python3 tools/check_publish.py --media` valida el material visual del README. CI ejecuta la auditoría y las pruebas sin archivos originales. Consulta las [notas de publicación](docs/publishing.md), las [herramientas y estructura del código](docs/advanced-usage.md) y el [flujo de ingeniería inversa](docs/rea-workflow.md) (en inglés).
 
-### Licencia y créditos
+### Licencia
 
 El código original del host tiene licencia [MIT](LICENSE). Esto excluye binarios originales del juego, recursos, marcas y dependencias de terceros.
 
 BioShock y BioShock 3D pertenecen a sus respectivos titulares. Este proyecto de preservación no es oficial ni cuenta con afiliación o respaldo. No se distribuyen módulos originales, datos, cabeceras del SDK, sonidos extraídos ni fuentes. Unicorn, Pillow y las demás dependencias conservan sus licencias.
 
 El material del juego del README son capturas renderizadas. El banner y el arte del lanzador se generaron; consulta la [procedencia del banner](docs/banner-art.md) y del [lanzador](docs/launcher-art.md) (en inglés).
+
+### Créditos
+
+- **Studio Tridev (IG Fun), los editores y los titulares del juego original:** BioShock 3D, su motor ARM, renderizador por software, arte y audio; consulta la [historia documentada del juego](docs/research.md) (en inglés).
+- **Colaboradores de Unicorn:** ejecución de los módulos ARM originales de BREW.
+- **Colaboradores de Python y Tcl/Tk:** lenguaje anfitrión de las implementaciones de servicios de BREW y ventana de juego de escritorio. **Colaboradores de Pillow:** escalado del arte del lanzador. **Colaboradores de Capstone:** herramientas de desensamblado para desarrollo.
+- **Colaboradores de FFmpeg, FluidSynth y PulseAudio:** decodificación de sonidos y voces originales, síntesis MIDI opcional y reproducción mediante `paplay`. Los creadores de SoundFonts conservan sus créditos y condiciones de licencia para las fuentes de sonido aportadas por los usuarios.
+- **Colaboradores y testers del proyecto:** perfiles de teléfonos, servicios de compatibilidad BREW, controles de PC, lanzador y documentación de preservación. Consulta la [procedencia del banner](docs/banner-art.md) y los [créditos del arte del lanzador](docs/launcher-art.md) (en inglés).
+
+Los componentes de terceros conservan sus propias licencias. Estos agradecimientos no implican afiliación ni respaldo de los creadores o titulares del juego original.
