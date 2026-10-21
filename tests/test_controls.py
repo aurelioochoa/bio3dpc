@@ -1,9 +1,11 @@
 """Build guard and guest context are checked independently of the frontend."""
+import math
+import struct
 from types import SimpleNamespace
 
 import pytest
 
-from bio3dpc.controls import GameControls, Gameplay
+from bio3dpc.controls import GameControls, Gameplay, PITCH_LIMIT
 
 
 class Memory:
@@ -136,29 +138,62 @@ def test_dialog_click_selects_explicit_yes_or_no(kind, offset, top):
     assert (m.u32(0x9000 + offset), m.u32(0x9004 + offset)) == (0,1)
 
 
-def test_relative_rotation_updates_native_camera_and_player_together():
+def test_relative_rotation_aims_native_camera_and_player_together():
     c, m = context()
     m.load_base = 0
+    c.aim = None
+    c.camera_basis, c.pitch_getter = 0x300, 0x400
     m.word(0x42b8, 0x8000)
-    m.word(0x8000, 0x9000)
-    m.word(0x900c, 0x100)
-    m.word(0x9010, 0x200)
-    c.pitch_getter = 0x300
+    # Level camera facing +z: right is -x.
+    m.write(0x80b8, struct.pack('<3i', 0, 0, 0x10000))
+    m.write(0x80d0, struct.pack('<3i', -0x10000, 0, 0))
     calls = []
-    def call(target, args):
-        calls.append((target, args))
-        return 24 * 65536 if target == c.pitch_getter else 0
-    m.call = call
-    assert c.rotate_view(10, 100)
-    assert m.u32(0x4278) == (-10 * 0xa0000) & 0xffffffff
-    assert calls == [(0x9100, [0x8000, 10 * 0x140000]),
-                     (0x300, [0x8000]), (0x9200, [0x8000, 65536])]
+    m.call = lambda target, args: calls.append((target, args))
+    # Nine right steps turn 90 degrees; pitch stops at the limit.
+    assert c.rotate_view(9, 100)
+    assert m.u32(0x4278) == (-9 * 0xa0000) & 0xffffffff
+    # The native routine derives up; the native getter refreshes its cache.
+    assert calls == [(0x300, [0x8000, 2]), (0x400, [0x8000])]
+    pitch = math.radians(PITCH_LIMIT)
+    forward = struct.unpack('<3i', m.read(0x80b8, 12))
+    right = struct.unpack('<3i', m.read(0x80d0, 12))
+    assert forward == tuple(round(v * 0x10000) for v in
+                            (-math.cos(pitch), -math.sin(pitch), 0))
+    assert right == (0, 0, -0x10000)
+    assert c.view_angles(0x8000) == pytest.approx((-90, PITCH_LIMIT), abs=1e-3)
+
     calls.clear()
     assert c.rotate_view(0, 0)
+    assert calls == []
+    # A scripted pitch controller keeps its pitch.
+    m.word(0x43d8, 1)
+    assert c.rotate_view(0, -10)
     assert calls == []
     m.word(0x2210, 1)
     assert not c.rotate_view(10, 10)
     assert calls == []
+
+
+def test_mouse_aim_reuses_written_angles_until_the_camera_moves():
+    c, m = context()
+    m.load_base = 0
+    c.aim = None
+    c.camera_basis, c.pitch_getter = 0x300, 0x400
+    m.word(0x42b8, 0x8000)
+    m.write(0x80b8, struct.pack('<3i', 0, 0, 0x10000))
+    m.write(0x80d0, struct.pack('<3i', -0x10000, 0, 0))
+    m.call = lambda target, args: None
+    # Many tiny moves accumulate exactly instead of rereading the basis; the
+    # camera follows the player's 16.16 heading, including its rounding.
+    for _ in range(1000):
+        assert c.rotate_view(.001, .001)
+    heading = m.u32(0x4278) - (1 << 32)
+    assert c.aim[1:] == pytest.approx((heading / 0x10000, 3))
+    # Something else turned the camera: start from where it now points.
+    m.write(0x80b8, struct.pack('<3i', 0x10000, 0, 0))
+    m.write(0x80d0, struct.pack('<3i', 0, 0, 0x10000))
+    assert c.rotate_view(0, 1)
+    assert c.aim[1:] == pytest.approx((90, 3))
 
 
 @pytest.mark.parametrize('delta', [0, -0x114])

@@ -261,11 +261,14 @@ Tab frees it; a click captures it again without firing. Losing focus releases
 every input. Escape releases the pointer when pausing, and resuming gameplay
 captures it again.
 
-On the verified portrait and landscape builds, relative mouse travel calls the
-game's native camera rotation methods once per host slice, including fractional
-steps (52 horizontal or 64 vertical host pixels per original look step at 1×
+On the verified portrait and landscape builds, relative mouse travel aims the
+game's native camera once per host slice, including fractional steps (52
+horizontal or 64 vertical host pixels per original 10° turn or 3° tilt at 1×
 sensitivity). Travel is consumed immediately, so a flick leaves no queue of
-turn-key holds after the mouse stops. Pitch keeps the native viewing limits.
+turn-key holds after the mouse stops. Mouse look reaches 85° up or down, keeping
+the point straight overhead or underfoot on screen; the keypad stops near 28°.
+Turning while looking up or down keeps the view level, and walking keeps its
+speed at any pitch.
 The default mouse speed is one quarter of the earlier rate. Walking forward
 or backward preserves mouse pitch; the phone's automatic leveling is suppressed
 while mouse look is enabled. Native keypad look keeps automatic leveling when

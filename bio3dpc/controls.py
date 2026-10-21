@@ -2,13 +2,15 @@
 
 PC equipment selection is implemented by pressing the game's own cycle keys.
 These offsets are build-specific; an image hash prevents applying them to a
-different module. Relative mouse look calls the native camera rotation methods
-and keeps the player's heading in sync. Mouse look suppresses the handset's
-walking camera resets through hash-guarded hooks; module files and inventory
-are untouched.
+different module. Relative mouse look aims the native camera, rebuilt by the
+game's own basis routine, and keeps the player's heading in sync. Mouse look
+suppresses the handset's walking camera resets and pitch slowdown through
+hash-guarded hooks; module files and inventory are untouched.
 """
 from dataclasses import dataclass
 import hashlib
+import math
+import struct
 
 
 VX8350_SHA256 = '53736c667d6635a5a6bbaecb3d63db6da047c4f6be2e6bc0135d13321c33d4fa'
@@ -31,6 +33,33 @@ WALK_DIRECTION_OFFSETS = {
     VX8350_SHA256: (0x9fe34, (0xd60c, 0x10318)),
     N7705_SHA256: (0xa02b8, (0xd694, 0x103a0)),
 }
+# Native walk step (camera, speed) adds forward.x/z * speed to the position,
+# so a pitched camera walks slower. Its two callers are the player's forward
+# and backward input (return addresses listed). The handset levels the
+# camera while walking; mouse look keeps pitch and restores the level speed.
+WALK_STEP_OFFSETS = {
+    VX8350_SHA256: (0x59b54, (0xbe700, 0xbe76c)),
+    N7705_SHA256: (0x59e04, (0xbea74, 0xbeae0)),
+}
+# Camera basis: forward +0xb8, up +0xc4, right +0xd0 (16.16 vectors). The
+# keypad turns through vtable +0xc/+0x10, which rotate forward about up/right
+# and then call this routine to rebuild the other axes. Mode 2 keeps forward
+# and right and derives up, the native pitch path.
+CAMERA_BASIS_OFFSETS = {
+    VX8350_SHA256: 0xb864c,
+    N7705_SHA256: 0xb8860,
+}
+TURN_STEP = 10      # degrees per native left/right step
+PITCH_STEP = 3      # degrees per native up/down step
+# The keypad stops tilting past 25 degrees (28 with its last step). Mouse
+# look reaches nearly straight up and down, keeping that point on screen.
+# Each frame, player routine 0x67f8c (portrait) rebuilds right as forward x
+# world up with a 10-bit cross product: at 90 degrees right is zeroed, and
+# past 85 degrees its rounding rolls the view by more than one degree.
+PITCH_LIMIT = 85
+# Within this many degrees, the camera still holds the aim written last; reuse
+# that exact aim, since reading back the fixed-point basis drifts over time.
+AIM_TOLERANCE = .05
 
 
 @dataclass(frozen=True)
@@ -59,7 +88,9 @@ class GameControls:
         digest = hashlib.sha256(module.data).hexdigest() if module else None
         offsets = INPUT_OFFSETS.get(digest)
         self.supported = offsets is not None
+        self.camera_basis = CAMERA_BASIS_OFFSETS.get(digest)
         self.pitch_getter = 0x2d27c if digest == VX8350_SHA256 else 0x2d6b0
+        self.aim = None     # (camera, heading, pitch) set by rotate_view
         self.pause_guard = 0x47748 if digest == VX8350_SHA256 else 0x479cc
         # The Nokia shell omits 0x114 bytes of handset-specific engine fields.
         # Player/equipment structures retain the same layout in both builds.
@@ -112,6 +143,30 @@ class GameControls:
             boot.m.uc.ctl_remove_cache(address, address + 4)
 
             from unicorn.arm_const import UC_ARM_REG_R1
+            walk_step, walk_callers = WALK_STEP_OFFSETS[digest]
+            def level_walking_speed(uc, address, size, user):
+                if not self.mouse_look:
+                    return
+                if uc.reg_read(UC_ARM_REG_LR) - boot.m.load_base not in walk_callers:
+                    return
+                state = self.state()
+                camera = uc.reg_read(UC_ARM_REG_R0)
+                if (state is None or boot.m.u32(state.player + 0x3d8) != 0 or
+                        camera != boot.m.u32(state.player + 0x2b8)):
+                    return
+                fx, fy, fz = struct.unpack('<3i', boot.m.read(camera + 0xb8, 12))
+                horizontal = math.hypot(fx, fz)
+                if horizontal and fy:
+                    speed = uc.reg_read(UC_ARM_REG_R1)
+                    if speed & 0x80000000:
+                        speed -= 0x100000000
+                    speed = round(speed * math.hypot(fx, fy, fz) / horizontal)
+                    uc.reg_write(UC_ARM_REG_R1, speed & 0xffffffff)
+            address = boot.m.load_base + walk_step
+            self.hooks.append(boot.m.uc.hook_add(
+                UC_HOOK_CODE, level_walking_speed, begin=address, end=address))
+            boot.m.uc.ctl_remove_cache(address, address + 4)
+
             def key_sampled(uc, address, size, user):
                 key = uc.reg_read(UC_ARM_REG_R1) & 0xffff
                 self.key_samples[key] = self.key_samples.get(key, 0) + 1
@@ -231,9 +286,15 @@ class GameControls:
     def rotate_view(self, yaw: float, pitch: float) -> bool:
         """Apply all pending relative travel now, with no keypad hold tail.
 
-        Units match the original look steps (10 degrees of player heading,
-        20 degrees of camera yaw, 6 degrees of pitch), including fractions.
-        Calling the same virtual methods preserves the native camera matrix.
+        Units are native look steps (10 degrees of turn, 3 degrees of pitch),
+        including fractions; positive pitch looks down, like the DOWN key.
+
+        The keypad's rotation methods suit its whole steps only: their sine
+        table ignores turns below about half a degree, rounds larger ones, and
+        yaws about the camera's tilted up axis, rolling a pitched view. Mouse
+        look instead sets forward and right from the heading and pitch, then
+        lets the native basis routine derive up and normalize, as those
+        methods finish.
         """
         state = self.state()
         if state is None:
@@ -242,28 +303,53 @@ class GameControls:
         camera = m.u32(state.player + 0x2b8)
         if camera < m.heap_base or not m.contains(camera, 0xdc):
             return False
-        table = m.u32(camera)
-        if not m.contains(table, 0x14):
-            return False
 
-        def rotate(slot, angle):
-            target = (table + m.u32(table + slot)) & 0xffffffff
-            m.call(target, [camera, angle & 0xffffffff])
-
-        heading = round(-yaw * 0xa0000)
-        if heading:
-            # Native right-turn input decreases the player's heading but
-            # passes a positive angle to the camera's rotation method.
-            rotate(0xc, round(yaw * 0x140000))
-            m.w32(state.player + 0x278, (m.u32(state.player + 0x278) + heading) & 0xffffffff)
+        heading = round(-yaw * (TURN_STEP << 16))
+        view_heading, view_pitch = self.view_angles(camera)
+        if self.aim and self.aim[0] == camera:
+            _, aim_heading, aim_pitch = self.aim
+            if (abs((view_heading - aim_heading + 180) % 360 - 180) < AIM_TOLERANCE and
+                    abs(view_pitch - aim_pitch) < AIM_TOLERANCE):
+                view_heading, view_pitch = aim_heading, aim_pitch
+        target = view_pitch
+        # player+0x3d8 is a scripted pitch controller; leave it in charge.
         if pitch and m.u32(state.player + 0x3d8) == 0:
-            current = m.call(m.load_base + self.pitch_getter, [camera])
-            if current & 0x80000000:
-                current -= 0x100000000
-            target = max(-0x190000, min(0x190000, current + round(pitch * 0x60000)))
-            if target != current:
-                rotate(0x10, target - current)
+            target = max(-PITCH_LIMIT, min(PITCH_LIMIT, view_pitch + pitch * PITCH_STEP))
+        if not heading and target == view_pitch:
+            return True
+        # Right turns decrease both the player's heading and atan2(x, z).
+        view_heading = (view_heading + heading / 0x10000 + 180) % 360 - 180
+        self.aim = (camera, view_heading, target)
+        h, p = math.radians(view_heading), math.radians(target)
+
+        def vector(x, y, z):
+            return struct.pack('<3i', *(round(c * 0x10000) for c in (x, y, z)))
+        m.write(camera + 0xb8, vector(math.sin(h) * math.cos(p), -math.sin(p),
+                                      math.cos(h) * math.cos(p)))
+        m.write(camera + 0xd0, vector(-math.cos(h), 0, math.sin(h)))
+        m.call(m.load_base + self.camera_basis, [camera, 2])
+        # The native pitch getter also caches its result at camera+0x48.
+        m.call(m.load_base + self.pitch_getter, [camera])
+        if heading:
+            m.w32(state.player + 0x278, (m.u32(state.player + 0x278) + heading) & 0xffffffff)
         return True
+
+    def view_angles(self, camera: int) -> tuple[float, float]:
+        """Camera heading and pitch in degrees; positive pitch looks down.
+
+        Heading matches player+0x278. Forward holds it exactly; the
+        horizontal right axis, rounded each frame by the native rebuild, only
+        stands in when forward points straight up or down. Pitch is the
+        native getter's acos(forward.y) - 90, without its fixed-point acos
+        losing half a degree near the poles.
+        """
+        fx, fy, fz, *_, rx, _, rz = struct.unpack('<9i', self.boot.m.read(camera + 0xb8, 36))
+        if fx or fz:
+            heading = math.degrees(math.atan2(fx, fz))
+        else:
+            heading = math.degrees(math.atan2(rz, -rx))
+        pitch = -math.degrees(math.atan2(fy, math.hypot(fx, fz)))
+        return heading, pitch
 
     def state(self) -> Gameplay | None:
         if not self.supported or not self.boot.applet:

@@ -698,17 +698,49 @@ stuck. Tab repeats do not toggle capture repeatedly. Focus loss clears keys,
 buttons, pending releases and camera budgets, including with mouse look off.
 Capture clicks are suppressed; clicks during a pointer warp are not discarded.
 
-The verified builds now consume mouse travel in one native camera rotation per
-host slice, including fractional steps, rather than holding phone look keys
-across later guest updates. The previous 32-step budget could continue turning
-for over a second after a flick. `GameControls.rotate_view` calls camera vtable
-slots `+0xc` (yaw) and `+0x10` (pitch), synchronizing `player+0x278` with yaw.
-The camera angle and player heading have opposite signs: a right turn passes
-`+0x140000` to the camera and subtracts `0xa0000` from the heading. Using the
-same sign for both mirrors the view and leaves movement facing another direction.
-Pitch is clamped to ±25 degrees using the native pitch getter (`0x2d27c` /
-`0x2d6b0`) and respects `player+0x3d8`. This preserves the camera's own matrix
-recalculation and avoids editing executable instructions or inventory.
+The verified builds now consume mouse travel in one camera update per host
+slice, including fractional steps, rather than holding phone look keys across
+later guest updates. The previous 32-step budget could continue turning for over
+a second after a flick. The camera stores forward, up and right at
+`+0xb8`/`+0xc4`/`+0xd0` (16.16 vectors). The keypad turns through vtable slots
+`+0xc` (yaw, `0xde84c`) and `+0x10` (pitch, `0x63f58`). Each rotates forward
+about the camera's own up or right axis by **half** its argument, then calls
+`0xb864c` (`0xb8860` on Nokia) to rebuild the remaining axes. A right turn
+passes `+0x140000` (a 10° turn) and subtracts `0xa0000` from the heading
+`player+0x278`; `UP`/`DOWN` pass `∓0x60000` (3°) while the native getter
+(`0x2d27c` / `0x2d6b0`, acos(forward.y) − 90°, cached at `camera+0x48`) reads
+inside ±25°, so the keypad stops near ±28°. The camera angle and player
+heading have opposite signs. Using the same sign for both mirrors the view and
+leaves movement facing another direction.
+
+Those methods suit only whole keypad steps. Their sine table ignores turns
+below about half a degree and misses a 10° step by ~0.06°. Measured on VX8350,
+1000 native turns of 3.7° drifted the camera 7.3° from the player heading, and
+one call past 90° comes out wrong (a 100° tilt gives 80.5°). Yawing about a
+tilted up axis also trades pitch for roll: at 30° pitch a 90° turn leaves the
+view level and rolled 30°. `GameControls.rotate_view` therefore writes forward
+and a horizontal right from the heading and pitch, then calls the native
+rebuild in mode 2 (up = right × forward, normalize), which is how the native
+pitch method finishes, and refreshes the getter's cache. Heading is read from
+forward and pitch from atan2, avoiding the getter's half-degree acos error near
+the poles. While the camera still holds the last written aim within 0.05°, that
+exact aim is reused, so fixed-point readback cannot drift. Over 3000 mixed
+moves the camera stays within 0.01° of `player+0x278` on both builds.
+
+Pitch is limited to ±85° and respects `player+0x3d8`. Every portrait frame,
+player routine `0x67f8c` rebuilds right as forward × world up through the
+engine's 10-bit cross product `0x1a314`. At 90° this zeroes right, which stops
+walking. Past 85° the rounding rolls the rendered view by over a degree (2.1°
+at 88°, 4.3° at 89°); forward, which holds the aim, is untouched. The walk step
+`0x59b54` (`0x59e04`), called from the forward/back input at `0xbe6fc`/`0xbe768`
+(`0xbea70`/`0xbeadc`), adds forward.x/z × speed. A pitched camera therefore
+walks at cos(pitch) speed, 2 instead of 24 units at 85°. On the handset this is
+at most 12% and walking re-levels the camera. Under mouse look, a hash-guarded
+hook scales that speed by |forward| / |horizontal forward|. It leaves level
+walking bit-identical and does not apply to scripted pitch. With mouse look
+off, walking runs the native leveling dispatcher again; as on the handset, it
+re-aligns pitch only after a height change (`|+0x370 − +0x37c| > 1000`) or a
+large enough slope difference.
 
 REA/Ghidra analysis on 2026-10-17 confirmed the portrait rotation routines
 `0xde84c` and `0x63f58`, the getter, and the menu factory `0x51044`.
