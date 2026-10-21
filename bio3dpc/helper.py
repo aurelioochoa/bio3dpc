@@ -8,6 +8,8 @@ end if a newer SDK adds fields (and bump HELPER_VERSION).
 
 Each field points at a trap slot: when the guest calls e.g. ``MALLOC``, control
 lands in the trap region and the Python handler runs with ARM AAPCS arguments.
+The hottest trivial helpers (``native_helpers.ROUTINES``) point at ARM routines
+instead, which fall back to their trap slot for large copies and fills.
 """
 from __future__ import annotations
 
@@ -16,6 +18,8 @@ import math
 import random
 import struct
 import time
+
+from . import native_helpers
 
 # Field order follows AEEHelperFuncs in BREW 3.1.5 SP02 sdk/inc/AEEStdLib.h.
 HELPER_FIELDS: tuple[str, ...] = (
@@ -149,19 +153,41 @@ class HelperTable:
         self.start_time = time.monotonic()
         self.static_ptrs: dict[int, int] = {}
         self.allocs: dict[int, bool] = {}   # addr -> zero_filled flag
-        self.applet = 0
+        self._applet = 0
+        self._applet_word = 0
+
+    @property
+    def applet(self) -> int:
+        return self._applet
+
+    @applet.setter
+    def applet(self, value: int) -> None:
+        self._applet = value
+        if self._applet_word:
+            self.m.w32(self._applet_word, value)
 
     # ------------------------------------------------------------------ table
-    def build(self) -> int:
-        """Fill the guest AEEHelperFuncs table and return its guest address."""
+    def build(self, native: bool = True) -> int:
+        """Fill the guest AEEHelperFuncs table and return its guest address.
+
+        ``native=False`` keeps every entry on its Python handler (call counts
+        and traces then cover all helpers).
+        """
         table = self.m.alloc(4 * len(HELPER_FIELDS))
-        for index, name in enumerate(HELPER_FIELDS):
+        slots = {}
+        for name in HELPER_FIELDS:
             handler = getattr(self, f"h_{name}", None)
             if handler is None:
                 handler = self._unsupported(name)
             nargs, result, variadic = HELPER_SPECS.get(name, (4, "u32", False))
-            slot = self.m.bind(f"helper::{name}", handler, nargs, result, variadic)
-            self.m.w32(table + 4 * index, slot)
+            slots[name] = self.m.bind(f"helper::{name}", handler, nargs, result, variadic)
+        if native:
+            entries = native_helpers.install(self.m, slots)
+            slots.update(entries)
+            self._applet_word = native_helpers.applet_word(entries)
+            self.applet = self._applet
+        for index, name in enumerate(HELPER_FIELDS):
+            self.m.w32(table + 4 * index, slots[name])
         return table
 
     def _unsupported(self, name):

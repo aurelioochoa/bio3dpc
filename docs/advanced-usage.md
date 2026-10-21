@@ -291,6 +291,8 @@ minutes of `OK`s and one `UP` (hold it at `PRESS UP TO SWIM UP`).
 | path | what it is |
 | --- | --- |
 | `bio3dpc/machine.py` | Unicorn ARM core, guest calls, traps, guest allocator |
+| `bio3dpc/helper.py` | `AEEHelperFuncs` table: the C runtime BREW gives the module |
+| `bio3dpc/native_helpers.py` | ARM versions of the hottest trivial helpers, run inside Unicorn |
 | `bio3dpc/services.py` | BREW classes: IShell, IDisplay, IBitmap, IFileMgr, IMemAStream, IImage(PNG), ISoundPlayer, … |
 | `bio3dpc/boot.py` | boot lifecycle: load module, create applet, `EVT_APP_START`, pump |
 | `bio3dpc/controls.py` | verified guest context and owned equipment (read only) |

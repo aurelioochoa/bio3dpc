@@ -95,6 +95,10 @@ class ArmMachine:
     TRAP_OFFSET = 16 * 1024 * 1024    # import trampoline slots
     TRAP_SIZE = 1024 * 1024           # 256 Ki slots
     RETURN_OFFSET = TRAP_OFFSET + TRAP_SIZE + 0x1000
+    # Helper routines run as guest code (native_helpers.py); outside the trap
+    # region, whose code hook would treat them as traps.
+    NATIVE_OFFSET = RETURN_OFFSET + 0x1000
+    NATIVE_SIZE = 0x1000
     HEAP_OFFSET = 32 * 1024 * 1024
     HEAP_RESERVE = 1024 * 1024        # keep the final MiB out of the heap
 

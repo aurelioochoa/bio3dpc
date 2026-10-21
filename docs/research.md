@@ -356,8 +356,10 @@ makes HLE tractable: the host can fabricate any object as `{vtable of trap stubs
 `GetSeconds`, Julian dates), randomness, path helpers, and diagnostics
 (`dbgprintf`). The host implements these as native Python functions behind trap
 slots (`bio3dpc/helper.py`); many are pure and delegate to the host (`memmove` →
-guest memory copy; `GetTimeMS` → monotonic clock). Critically, the table may only be
-extended at the end — the guest indexes it positionally.
+guest memory copy; `GetTimeMS` → monotonic clock). The hottest trivial ones
+(`strcmp`, `strlen`, `GetAppInstance`, small `memmove`/`memset`) are ARM routines
+run inside Unicorn instead (`bio3dpc/native_helpers.py`, §7.5). Critically, the
+table may only be extended at the end — the guest indexes it positionally.
 
 ### 3.5 MIF resources
 
@@ -851,6 +853,19 @@ this host, measured with synthetic loops, is ≈61 MIPS for register-only code
 and ≈26 MIPS for store-heavy code; the rasterizer writes framebuffer pixels, so
 gameplay speed is bounded by emulated-CPU throughput, not by the HLE.  Item 3
 of §6 (weaker hosts) applies.
+
+**Helpers inside the emulator.**  A trap round trip costs 2.3 µs for an empty
+handler and 6–10 µs for `strcmp`, `strlen`, `memmove` or `memset`.  Loading a
+level makes ~225k `strcmp` calls (most differ at the first byte) and ~110k
+one-byte `memmove` calls; first-person play makes ~5k `GetAppInstance` and ~5k
+small `memmove`/`memset` calls per second.  `native_helpers.py` runs those
+five as ARM code inside Unicorn (0.03–1.5 µs per call); copies over 512 bytes,
+or over 128 bytes byte by byte, still go to the host's `memmove`/`memset`.  A
+deterministic replay (fake clock, keys at fixed ticks, every frame hashed)
+gives identical frames with and without them: 6000 VX8350 ticks, boot to
+first-person play, and 2500 Nokia ticks.  Over the first 3000 VX8350 ticks
+traps fall from 1.42M to 0.43M and wall time from 80.3/80.2 s to 70.4/73.6 s,
+including the replay's own per-frame hashing.
 
 ### 7.6 Persistence (measured)
 

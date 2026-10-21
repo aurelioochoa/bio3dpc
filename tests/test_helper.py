@@ -8,6 +8,7 @@ import pytest
 from bio3dpc.helper import HELPER_FIELDS, HelperTable
 from bio3dpc.log import RunLog
 from bio3dpc.machine import ArmMachine
+from bio3dpc.native_helpers import ROUTINES as NATIVE_ROUTINES
 
 BX_LR_STUB = b"\x1e\xff\x2f\xe1"
 
@@ -49,8 +50,13 @@ def test_helper_table_build_binds_every_field(helper_env):
     assert len(set(slots)) == len(HELPER_FIELDS)
 
     trap_lo = machine.base + machine.TRAP_OFFSET
-    assert all(trap_lo <= entry < machine.trap_end for entry in slots)
-    assert all(machine.read(entry, 4) == BX_LR_STUB for entry in slots)
+    native_lo = machine.base + machine.NATIVE_OFFSET
+    for name, entry in zip(HELPER_FIELDS, slots):
+        if name in NATIVE_ROUTINES:
+            assert native_lo <= entry < native_lo + machine.NATIVE_SIZE
+        else:
+            assert trap_lo <= entry < machine.trap_end
+            assert machine.read(entry, 4) == BX_LR_STUB
 
 
 # ---------------------------------------------------------------------- calls
