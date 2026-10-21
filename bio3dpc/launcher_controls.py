@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image, ImageTk
+
+from . import ui_images
 
 INK, GOLD, MUTED = '#f3e8cd', '#d9b879', '#b3c1b3'
 
@@ -10,23 +12,24 @@ INK, GOLD, MUTED = '#f3e8cd', '#d9b879', '#b3c1b3'
 class Artwork:
     def __init__(self, folder):
         self.folder = Path(folder)
-        self.sources, self.photos = {}, {}
+        self.photos = {}
+
+    def path(self, name):
+        return self.folder/f'{name}.png'
 
     def source(self, name):
-        if name not in self.sources:
-            self.sources[name] = Image.open(self.folder/f'{name}.png').convert('RGBA')
-        return self.sources[name]
+        return ui_images.source(self.path(name), 'RGBA')
 
     def get(self, name, width, height):
         size = max(1, round(width)), max(1, round(height))
         key = name, size
         if key not in self.photos:
+            # Resampled copies outlive clear(), so a reflow to a size seen
+            # before only rebuilds the Tk photos.
             if name == 'logo':
-                image=Image.new('RGBA',size)
-                fitted=ImageOps.contain(self.source(name),size,Image.Resampling.LANCZOS)
-                image.alpha_composite(fitted,((size[0]-fitted.width)//2,(size[1]-fitted.height)//2))
+                image=ui_images.letterboxed(self.source(name),size)
             else:
-                image=self.source(name).resize(size,Image.Resampling.LANCZOS)
+                image=ui_images.resized(self.source(name),size)
             self.photos[key] = ImageTk.PhotoImage(image)
         return self.photos[key]
 

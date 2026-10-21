@@ -298,6 +298,7 @@ minutes of `OK`s and one `UP` (hold it at `PRESS UP TO SWIM UP`).
 | `bio3dpc/frontend.py` | tkinter window: framebuffer → PPM image, keyboard/mouse input → `EVT_KEY` |
 | `bio3dpc/profiles.py` | original build identities, dimensions, class IDs and matching assets |
 | `bio3dpc/launcher.py`, `bathysphere.py` | live Bathysphere edition selector and settings |
+| `bio3dpc/ui_images.py` | launcher artwork decoded once, resampled copies reused |
 | `bio3dpc/animation.py` | asynchronous, bounded local video playback |
 | `bio3dpc/desktop.py` | per-user desktop installation and removal |
 | `bio3dpc/audio.py` | QCP/MIDI → WAV (ffmpeg / fluidsynth) → `paplay` |

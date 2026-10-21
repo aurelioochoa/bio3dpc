@@ -7,13 +7,19 @@ import time
 import tkinter as tk
 from tkinter import filedialog, ttk
 
-from PIL import Image, ImageTk, ImageOps
+from PIL import ImageTk
 
+from . import ui_images
 from .animation import LoopVideo, LampFlicker
 from .launcher_controls import Artwork, ImageButton, ScaleSlider, AudioSwitch, EditionChoice
 
 ASSETS = Path(__file__).resolve().parent / 'ui_assets'
 GOLD, INK, MUTED, DARK = '#d9b879', '#f3e8cd', '#b3c1b3', '#0a201d'
+# Control artwork the main view draws; decoded in parallel when it opens.
+ARTWORK = ('logo', 'play', 'secondary', 'icon-settings', 'icon-folder', 'slider-track', 'slider-thumb',
+           'arrow-left', 'arrow-right', 'toggle-track', 'toggle-knob', 'radio-on', 'radio-off',
+           'portrait-frame', 'landscape-frame', 'preview-portrait', 'preview-landscape',
+           *(f'lamp-{level:02}' for level in range(16)))
 
 
 class BathysphereView:
@@ -30,8 +36,13 @@ class BathysphereView:
         self.photo = None
         self.scale, self.origin = 1., (736., 0.)
         self.art = Artwork(ASSETS/'controls')
-        self.plate = Image.open(ASSETS/'bathysphere-source.png').convert('RGB').resize((1152,768),Image.Resampling.LANCZOS)
-        self.left_plate, self.right_plate = self.plate.crop((0,0,736,768)), self.plate.crop((736,0,1152,768))
+        # Decode the artwork in parallel; the loads below then share it.
+        plate = (ASSETS/'bathysphere-source.png','RGB',('resize',(1152,768)))
+        for future in ui_images.warm([plate,(ASSETS/'icon.png',None,('resize',(64,64)))]+
+                                     [(self.art.path(name),'RGBA') for name in ARTWORK]):
+            future.result()
+        self.plate = ui_images.prepared(*plate)
+        self.left_plate, self.right_plate = ui_images.cropped(self.plate,(0,0,736,768)), ui_images.cropped(self.plate,(736,0,1152,768))
         self.lamps = [LampFlicker() for _ in range(4)]
         self.lamp_items, self.lamp_levels = [], [-1]*4
         self.window.title('BioShock 3D · BREW PC PORT')
@@ -42,7 +53,7 @@ class BathysphereView:
         self.window.resizable(True,True)
         self.window.configure(bg=DARK)
         if (ASSETS/'icon.png').is_file():
-            self.icon=ImageTk.PhotoImage(Image.open(ASSETS/'icon.png').resize((64,64),Image.Resampling.LANCZOS))
+            self.icon=ImageTk.PhotoImage(ui_images.prepared(ASSETS/'icon.png',None,('resize',(64,64))))
             self.window.iconphoto(True,self.icon)
         self.canvas=tk.Canvas(self.window,bg=DARK,highlightthickness=0,takefocus=True)
         self.scrollbar=ttk.Scrollbar(self.window,orient='vertical',command=self.canvas.yview)
@@ -128,9 +139,9 @@ class BathysphereView:
         self.content_height=content_height
         self.canvas.configure(scrollregion=(0,0,width,content_height))
         self.art_size=max(1,art_w),max(1,art_h)
-        self.photo=ImageTk.PhotoImage(ImageOps.fit(self.left_plate,self.art_size,Image.Resampling.LANCZOS))
+        self.photo=ImageTk.PhotoImage(ui_images.fitted(self.left_plate,self.art_size))
         self.canvas.itemconfigure(self.background,image=self.photo)
-        self.panel_photo=ImageTk.PhotoImage(self.right_plate.resize((max(1,panel_w),max(1,panel_h)),Image.Resampling.LANCZOS))
+        self.panel_photo=ImageTk.PhotoImage(ui_images.resized(self.right_plate,(max(1,panel_w),max(1,panel_h))))
         self.canvas.coords(self.panel,panel_x,panel_y)
         self.canvas.itemconfigure(self.panel,image=self.panel_photo)
         self._draw_labels()
@@ -186,7 +197,7 @@ class BathysphereView:
             for level in range(16):
                 image=self.art.source(f'lamp-{level:02}')
                 dimensions=max(1,round(72*factor*size)),max(1,round(104*factor*size))
-                photos.append(ImageTk.PhotoImage(image.resize(dimensions,Image.Resampling.LANCZOS)))
+                photos.append(ImageTk.PhotoImage(ui_images.resized(image,dimensions)))
             self.lamp_photos.append(photos)
             self.lamp_items.append(c.create_image(ox+x*factor,oy+y*factor,image=photos[12]))
         # Lamp overlays must never extend beyond the observation panel.
@@ -316,6 +327,7 @@ class BathysphereView:
     def close(self):
         self.closed=True
         self.pause()
+        ui_images.shutdown()
         for name in ('resize_job','decoder_job'):
             job=getattr(self,name)
             if job is not None:
