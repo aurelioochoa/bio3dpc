@@ -31,10 +31,10 @@ separate from these captures.
 | LG VX8350 · 176×220 gameplay | Nokia 7705 · 320×240 opening scene |
 | --- | --- |
 | ![Actual LG VX8350 gameplay with the wrench and HUD](../docs/media/gameplay-vx8350.gif) | ![Actual Nokia 7705 opening first-person scene with the HUD](../docs/media/gameplay-n7705.gif) |
-| v1.4.1.1 · seven matching campaign packs required | v1.5.2.1 · only two campaign packs available |
+| v1.4.1.1 · seven matching campaign packs required | v1.5.2.1 · two original packs; five rebuilt from VX9900 data |
 
-Both editions reach first-person gameplay. Full campaign completion has not
-been verified, and the Nokia collection is missing later campaign packs.
+Both editions reach first-person gameplay. All seven Nokia levels load with the
+rebuilt landscape campaign; a complete playthrough has not been verified.
 See [build coverage](../docs/builds.md) for the exact limits.
 
 ## Quick start
@@ -88,8 +88,9 @@ stay separate, and original files remain read-only. Launcher preferences live
 under `~/.config/bio3dpc/`. `make uninstall-desktop` removes the menu entry and
 installed command while preserving preferences, saves and game files.
 
-The Nokia landscape release contains only `bio1.dat` and `bio2.dat`; its later
-campaign packs are missing. See [build coverage and selection rationale](../docs/builds.md).
+The Nokia landscape release contains only `bio1.dat` and `bio2.dat`. Rebuilt
+later packs live in `~/.local/share/bio3dpc/campaign/n7705` (or `XDG_DATA_HOME`).
+See [build coverage and selection rationale](../docs/builds.md).
 
 ## Setup
 
@@ -129,8 +130,11 @@ Extract any archive before selecting files; keep the original filenames.
 
 Portrait needs `bio1.dat` through `bio7.dat` and the matching `bio3d.idx`.
 Select the directory containing those files as the data folder. The Nokia
-landscape release has only its first two packs; later
-campaign data is missing. Other handset builds' packs are not substitutes.
+landscape release has only its first two packs. With Nokia 7705 selected,
+**Installation → Complete campaign…** (or `make rebuild-landscape`) builds
+`bio3.dat`–`bio7.dat` locally from your own LG VX9900 data folder and VX8350
+`bio5.dat`, verifies all seven packs by hash and selects the result. bio3dpc
+ships no game data; keep the built folder private. Packs from other handset builds are not otherwise substitutes.
 See [build coverage](../docs/builds.md) for the limits of each edition.
 
 bio3dpc **uses files in place**. It saves the selected paths without copying
@@ -322,7 +326,8 @@ minutes of `OK`s and one `UP` (hold it at `PRESS UP TO SWIM UP`).
 
 Before publishing changes, stage the intended files and run
 `.venv/bin/python tools/check_publish.py`. It checks the Git index for game
-files, archives, local credentials, oversized files and common secret patterns.
+files, archives, links to game-file download sources, local credentials,
+oversized files and common secret patterns.
 GitHub Actions repeats that audit, checks the README media and runs the tests
 without original game files. See [publishing notes](../docs/publishing.md).
 

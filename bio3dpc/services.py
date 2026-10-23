@@ -20,6 +20,7 @@ import time
 
 from .audio import FALLBACK_SECONDS, AudioEngine
 from .ifaces_gen import IFACES
+from .machine import GuestError
 
 # ------------------------------------------------------------------ constants
 # AEEError.h

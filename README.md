@@ -4,13 +4,13 @@
 
 ## English
 
-> **Disclaimer:** `bio3dpc` is not a decompilation or a static recompilation of BioShock 3D. It is an effort to preserve the specific BREW copies for LG VX8350 v1.4.1.1 and Nokia 7705 v1.5.2.1 and make them playable on PC, currently targeting Linux x86_64. Unicorn executes each original ARM module, including its software renderer, while Python supplies BREW services, desktop controls, display and audio. You must supply your own matching modules and data. Full campaign playability is unverified; later Nokia campaign packs are missing.
+> **Disclaimer:** `bio3dpc` is not a decompilation or a static recompilation of BioShock 3D. It is an effort to preserve the specific BREW copies for LG VX8350 v1.4.1.1 and Nokia 7705 v1.5.2.1 and make them playable on PC, currently targeting Linux x86_64. Unicorn executes each original ARM module, including its software renderer, while Python supplies BREW services, desktop controls, display and audio. You must supply your own matching modules and data. The Nokia release lacks its later campaign packs; the launcher rebuilds them from your own same-generation LG VX9900 data. Full start-to-finish playthroughs are unverified.
 
 ![BioShock 3D — BREW PC PORT, with a Bathysphere overlooking Rapture](docs/media/banner.png)
 
 Preserve and play **BioShock 3D**, the 2010 BREW mobile game, on a Linux PC. `bio3dpc` executes the original ARM code through Unicorn while Python supplies the BREW runtime, desktop controls, audio and a tkinter window.
 
-**Bring your own game:** original BREW modules and data are not included or downloaded. The **LG VX8350 portrait** and **Nokia 7705 landscape** editions have separate profiles. Both reach gameplay; full campaign completion has not been verified, and the Nokia collection lacks later campaign packs.
+**Bring your own game:** original BREW modules and data are not included or downloaded. The **LG VX8350 portrait** and **Nokia 7705 landscape** editions have separate profiles. Both reach gameplay. The Nokia release ships only its first two campaign packs; **Complete campaign** builds the other five on your computer from VX9900 and VX8350 data that you also supply, and all seven landscape levels load and play. A complete playthrough has not been verified.
 
 [Gameplay](#gameplay) · [Quick start](#quick-start) · [Game files](#game-files) · [How the port works](#how-the-port-works) · [Controls](#controls) · [Development](#development)
 
@@ -21,7 +21,7 @@ Actual framebuffer recordings, enlarged 2× with nearest-neighbor scaling. These
 | LG VX8350 · 176×220 portrait | Nokia 7705 · 320×240 landscape |
 | --- | --- |
 | ![Portrait gameplay with wrench and HUD](docs/media/gameplay-vx8350.gif) | ![Landscape opening scene with HUD](docs/media/gameplay-n7705.gif) |
-| v1.4.1.1 · seven matching campaign packs required | v1.5.2.1 · only two campaign packs available |
+| v1.4.1.1 · seven matching campaign packs required | v1.5.2.1 · two original packs; five rebuilt from VX9900 data |
 
 See [build coverage](docs/builds.md) for the exact limits of each edition.
 
@@ -62,9 +62,17 @@ Supply extracted **BioShock 3D BREW game files**, keeping their original names:
 | Edition | Module and matching data |
 | --- | --- |
 | LG VX8350 · v1.4.1.1 | `bio3d.mod`, `bio3d.idx`, and `bio1.dat` through `bio7.dat` |
-| Nokia 7705 · v1.5.2.1 | Matching `bio3d.mod`, `bio3d.idx`, `bio1.dat` and `bio2.dat`; later campaign packs are missing |
+| Nokia 7705 · v1.5.2.1 | Matching `bio3d.mod`, `bio3d.idx`, `bio1.dat` and `bio2.dat`. For chapters 2–4, also `data/vx9900` (`bio3.dat`–`bio7.dat`) and VX8350 `bio5.dat` |
 
 In **Installation**, select **Original BREW module (.mod)** and the **Matching game data folder (.dat + .idx)**. Choose the folder containing the actual data files, rather than its parent. Verification checks module and starter asset hashes and required pack names; it does not establish full campaign coverage. Files from other handset builds are not substitutes.
+
+**Landscape chapters 2–4:** bio3dpc contains no game data or game code, and nothing is downloaded. You need two more original data sets of your own: LG VX9900 `bio3.dat`–`bio7.dat` and LG VX8350 `bio5.dat`.
+
+1. Select **Nokia 7705 · Landscape**, open **Installation** and verify your Nokia module and data.
+2. Choose **Complete campaign…**. Select your **LG VX9900 data folder** and **LG VX8350 data folder**. Folders in a collection's `data/vx9900` and `data/vx8350` are filled in automatically.
+3. Choose **Check files**, then **Build from my files**, then **Close** and **Save and return**.
+
+Each file must match its known original by SHA-256, and your files are only read. The build writes a verified seven-pack folder to `~/.local/share/bio3dpc/campaign/n7705` and selects it. It contains game data from your files, so keep it private. `make rebuild-landscape` does the same from a terminal. Nokia's own index confirms four of the five built packs to the byte. See [the reconstruction](docs/builds.md#rebuilt-landscape-campaign).
 
 **Files are used in place:** the launcher remembers their paths without copying or modifying them. Keep the source folder or external drive available while playing. APK, IPA, JAR and console ROM formats are unsupported. See [build identities and coverage](docs/builds.md) and [detailed installation guidance](docs/advanced-usage.md#installation-bring-your-own-game-files).
 
@@ -76,7 +84,7 @@ The original BREW `.mod` contains the ARM game code, including its software 3D r
 2. **Recreate the BREW lifecycle.** The host calls `AEEMod_Load`, creates the `IApplet`, sends `EVT_APP_START`, then pumps scheduled timers and callbacks. BREW interfaces such as `IShell`, `IDisplay`, `IBitmap`, `IFileMgr` and `ISoundPlayer` have guest-visible method tables. Calls into those tables reach Python handlers through ARM trap stubs, then return to the game.
 3. **Display the software framebuffer.** The emulated ARM game rasterizes the scene into a guest bitmap. The frontend converts its RGB565 pixels into a PPM image for **tkinter**, scaled from the handset's native **176×220** or **320×240** display. The supported profiles use this CPU rendering path, so rendering work also consumes emulated CPU time.
 4. **Bridge input and audio.** Desktop keys become BREW key press/release events; verified builds apply relative mouse movement through the game's native camera methods. FFmpeg decodes QCP/QCELP sound and voices, FluidSynth renders MIDI when a SoundFont is available, and `paplay` plays the resulting audio. Host callbacks preserve playback timing, including silent MIDI operation without a SoundFont.
-5. **Separate assets from saves.** The game reads its original `.idx` and `.dat` resources from the selected folder. Writable save files go to an overlay keyed by module SHA-256, keeping handset editions separate and source files unchanged. Build-specific hooks and service coverage limit compatibility; the missing Nokia campaign packs cannot be supplied by the runtime.
+5. **Separate assets from saves.** The game reads its original `.idx` and `.dat` resources from the selected folder. Writable save files go to an overlay keyed by module SHA-256, keeping handset editions separate and source files unchanged. Build-specific hooks and service coverage limit compatibility. The missing Nokia packs are rebuilt once, outside the originals, from sibling original data.
 
 Source entry points: [module loading](bio3dpc/modfile.py), [ARM execution](bio3dpc/machine.py), [boot lifecycle](bio3dpc/boot.py), [BREW services](bio3dpc/services.py), [desktop frontend](bio3dpc/frontend.py), and [audio](bio3dpc/audio.py). See the [source layout](docs/advanced-usage.md#layout) and [build coverage](docs/builds.md) for more detail.
 
@@ -135,7 +143,7 @@ For full binding rules, camera behavior and introductory phone prompts, see [the
 
 ### Status and limitations
 
-Both supported profiles reach first-person gameplay. Observed checks include startup, introduction, menus, keyboard input, persistent saves, QCP/QCELP sound decoding and optional MIDI rendering. Full campaign completion is unverified. **The Nokia collection only has its first two campaign packs.**
+Both supported profiles reach first-person gameplay. Observed checks include startup, introduction, menus, keyboard input, persistent saves, QCP/QCELP sound decoding and optional MIDI rendering. **All seven Nokia landscape levels** (chapters 1–4, through Smuggler's Hideout) load through the game's own Continue path with rebuilt packs and accept native movement (`tools/verify_campaign.py`). A complete start-to-finish playthrough is unverified for either edition.
 
 Earlier VX8350 measurements recorded roughly 19 gameplay ticks/s (about 38 fps); the emulated CPU performs the game's software rendering. Those are historical measurements, not a performance guarantee. Additional handset builds are inventoried but not qualified; LG VX10000 also needs EGL/GLES support. Some BREW classes remain unimplemented or refused.
 
@@ -181,13 +189,13 @@ Third-party components retain their own licenses. These acknowledgments do not i
 
 ## Español
 
-> **Aviso:** `bio3dpc` no es una descompilación ni una recompilación estática de BioShock 3D. Es un esfuerzo para preservar las copias específicas de BREW para LG VX8350 v1.4.1.1 y Nokia 7705 v1.5.2.1 y permitir jugarlas en PC, actualmente en Linux x86_64. Unicorn ejecuta cada módulo ARM original, incluido su renderizador por software, mientras Python proporciona servicios de BREW, controles de escritorio, pantalla y audio. Debes aportar tus propios módulos y datos correspondientes. La jugabilidad de toda la campaña sigue sin verificarse; faltan los paquetes posteriores de Nokia.
+> **Aviso:** `bio3dpc` no es una descompilación ni una recompilación estática de BioShock 3D. Es un esfuerzo para preservar las copias específicas de BREW para LG VX8350 v1.4.1.1 y Nokia 7705 v1.5.2.1 y permitir jugarlas en PC, actualmente en Linux x86_64. Unicorn ejecuta cada módulo ARM original, incluido su renderizador por software, mientras Python proporciona servicios de BREW, controles de escritorio, pantalla y audio. Debes aportar tus propios módulos y datos correspondientes. A la versión de Nokia le faltan sus paquetes posteriores; el lanzador los reconstruye a partir de tus propios datos de LG VX9900, de la misma generación. No se han verificado partidas completas de principio a fin.
 
 ![BioShock 3D: port de BREW para PC, con una batisfera frente a Rapture](docs/media/banner.png)
 
 Preserva y juega **BioShock 3D**, el juego móvil de BREW de 2010, en un PC con Linux. `bio3dpc` ejecuta el código ARM original mediante Unicorn; Python proporciona el runtime de BREW, los controles de escritorio, el audio y una ventana de tkinter.
 
-**Debes aportar tu propio juego:** los módulos y datos originales de BREW no se incluyen ni se descargan. Las ediciones **LG VX8350 vertical** y **Nokia 7705 horizontal** tienen perfiles separados. Ambas llegan al juego; no se ha verificado la campaña completa y la colección de Nokia carece de los paquetes posteriores.
+**Debes aportar tu propio juego:** los módulos y datos originales de BREW no se incluyen ni se descargan. Las ediciones **LG VX8350 vertical** y **Nokia 7705 horizontal** tienen perfiles separados. Ambas llegan al juego. La versión de Nokia solo incluye sus dos primeros paquetes de campaña; **Complete campaign** construye los otros cinco en tu ordenador a partir de datos de VX9900 y VX8350 que también debes aportar, y los siete niveles horizontales cargan y se pueden jugar. No se ha verificado una partida completa.
 
 [Jugabilidad](#jugabilidad) · [Inicio rápido](#inicio-rápido) · [Archivos del juego](#archivos-del-juego) · [Cómo funciona el port](#cómo-funciona-el-port) · [Controles](#controles) · [Desarrollo](#desarrollo)
 
@@ -198,7 +206,7 @@ Grabaciones reales del framebuffer, ampliadas al doble con escalado por vecino m
 | LG VX8350 · 176×220 vertical | Nokia 7705 · 320×240 horizontal |
 | --- | --- |
 | ![Juego vertical con llave inglesa e indicadores](docs/media/gameplay-vx8350.gif) | ![Escena inicial horizontal con indicadores](docs/media/gameplay-n7705.gif) |
-| v1.4.1.1 · requiere siete paquetes de campaña compatibles | v1.5.2.1 · solo hay dos paquetes de campaña disponibles |
+| v1.4.1.1 · requiere siete paquetes de campaña compatibles | v1.5.2.1 · dos paquetes originales; cinco reconstruidos con datos de VX9900 |
 
 Consulta la [cobertura de versiones](docs/builds.md) (en inglés) para conocer los límites de cada edición.
 
@@ -239,9 +247,17 @@ Aporta los **archivos extraídos de BioShock 3D para BREW** y conserva sus nombr
 | Edición | Módulo y datos compatibles |
 | --- | --- |
 | LG VX8350 · v1.4.1.1 | `bio3d.mod`, `bio3d.idx` y `bio1.dat` hasta `bio7.dat` |
-| Nokia 7705 · v1.5.2.1 | `bio3d.mod`, `bio3d.idx`, `bio1.dat` y `bio2.dat` compatibles; faltan los paquetes posteriores |
+| Nokia 7705 · v1.5.2.1 | `bio3d.mod`, `bio3d.idx`, `bio1.dat` y `bio2.dat` compatibles. Para los capítulos 2–4, también `data/vx9900` (`bio3.dat`–`bio7.dat`) y `bio5.dat` de VX8350 |
 
 En **Installation**, selecciona **Original BREW module (.mod)** y **Matching game data folder (.dat + .idx)**. Elige la carpeta que contiene los datos, no su carpeta superior. La verificación comprueba los hashes del módulo y de los recursos iniciales, además de los nombres de paquetes requeridos; no demuestra cobertura de toda la campaña. Los archivos de otros teléfonos no son sustitutos compatibles.
+
+**Capítulos horizontales 2–4:** bio3dpc no contiene datos ni código del juego, y no descarga nada. Necesitas otros dos conjuntos de datos originales propios: `bio3.dat`–`bio7.dat` de LG VX9900 y `bio5.dat` de LG VX8350.
+
+1. Selecciona **Nokia 7705 · Landscape**, abre **Installation** y verifica tu módulo y datos de Nokia.
+2. Elige **Complete campaign…**. Selecciona tu **LG VX9900 data folder** y tu **LG VX8350 data folder**. Las carpetas `data/vx9900` y `data/vx8350` de una colección se rellenan automáticamente.
+3. Elige **Check files**, luego **Build from my files**, después **Close** y **Save and return**.
+
+Cada archivo debe coincidir con su original conocido mediante SHA-256, y tus archivos solo se leen. La construcción escribe una carpeta verificada de siete paquetes en `~/.local/share/bio3dpc/campaign/n7705` y la selecciona. Contiene datos del juego procedentes de tus archivos, así que mantenla privada. `make rebuild-landscape` hace lo mismo desde una terminal. El propio índice de Nokia confirma byte a byte cuatro de los cinco paquetes construidos. Consulta [la reconstrucción](docs/builds.md#rebuilt-landscape-campaign) (en inglés).
 
 **Los archivos se usan en su ubicación original:** el lanzador recuerda sus rutas sin copiarlos ni modificarlos. Mantén disponible la carpeta o unidad externa durante el juego. No se admiten APK, IPA, JAR ni ROM de consola. Consulta las [identidades y cobertura de versiones](docs/builds.md) y la [guía detallada de instalación](docs/advanced-usage.md#installation-bring-your-own-game-files) (en inglés).
 
@@ -253,7 +269,7 @@ El `.mod` original de BREW contiene el código ARM del juego, incluido su render
 2. **Recrear el ciclo de vida de BREW.** El host llama a `AEEMod_Load`, crea el `IApplet`, envía `EVT_APP_START` y atiende temporizadores y callbacks programados. Las interfaces de BREW, como `IShell`, `IDisplay`, `IBitmap`, `IFileMgr` e `ISoundPlayer`, tienen tablas de métodos visibles para el código emulado. Sus llamadas llegan a funciones Python mediante pequeñas rutinas ARM de enlace y después regresan al juego.
 3. **Mostrar el framebuffer por software.** El juego ARM emulado rasteriza la escena en un mapa de bits de su memoria. La interfaz convierte sus píxeles RGB565 en una imagen PPM para **tkinter**, escalada desde los **176×220** o **320×240** originales. Los perfiles admitidos usan este renderizado por CPU, por lo que dibujar también consume tiempo de CPU emulada.
 4. **Conectar entrada y audio.** Las teclas del escritorio se convierten en eventos de pulsación y liberación de BREW; las versiones verificadas aplican el movimiento relativo del ratón mediante los métodos de cámara originales. FFmpeg decodifica sonidos y voces QCP/QCELP, FluidSynth renderiza MIDI cuando hay un SoundFont y `paplay` reproduce el audio resultante. Los callbacks del host conservan la temporización de reproducción, incluido el MIDI silencioso sin SoundFont.
-5. **Separar recursos y partidas.** El juego lee sus recursos originales `.idx` y `.dat` de la carpeta seleccionada. Los archivos de partidas se escriben en una capa separada identificada por el SHA-256 del módulo, aislando las ediciones y conservando los originales. Los enlaces específicos de cada versión y los servicios implementados limitan la compatibilidad; el runtime no puede suplir los paquetes de campaña ausentes de Nokia.
+5. **Separar recursos y partidas.** El juego lee sus recursos originales `.idx` y `.dat` de la carpeta seleccionada. Los archivos de partidas se escriben en una capa separada identificada por el SHA-256 del módulo, aislando las ediciones y conservando los originales. Los enlaces específicos de cada versión y los servicios implementados limitan la compatibilidad; los paquetes ausentes de Nokia se reconstruyen una vez, fuera de los originales, a partir de datos originales de un modelo hermano.
 
 Puntos de entrada del código: [carga de módulos](bio3dpc/modfile.py), [ejecución ARM](bio3dpc/machine.py), [ciclo de inicio](bio3dpc/boot.py), [servicios BREW](bio3dpc/services.py), [interfaz de escritorio](bio3dpc/frontend.py) y [audio](bio3dpc/audio.py). Consulta la [estructura del código](docs/advanced-usage.md#layout) y la [cobertura por versión](docs/builds.md) para más detalles (en inglés).
 
@@ -312,7 +328,7 @@ Consulta las reglas de asignación, la cámara y las indicaciones del teléfono 
 
 ### Estado y limitaciones
 
-Ambos perfiles admitidos llegan al juego en primera persona. Las comprobaciones observadas incluyen inicio, introducción, menús, teclado, partidas persistentes, decodificación QCP/QCELP y música MIDI opcional. La campaña completa no está verificada. **La colección de Nokia solo contiene sus dos primeros paquetes de campaña.**
+Ambos perfiles admitidos llegan al juego en primera persona. Las comprobaciones observadas incluyen inicio, introducción, menús, teclado, partidas persistentes, decodificación QCP/QCELP y música MIDI opcional. **Los siete niveles horizontales de Nokia** (capítulos 1–4, hasta Smuggler's Hideout) cargan mediante la opción Continue del propio juego con los paquetes reconstruidos y aceptan movimiento nativo (`tools/verify_campaign.py`). No se ha verificado una partida completa de principio a fin en ninguna edición.
 
 Las mediciones anteriores de VX8350 registraron aproximadamente 19 ticks/s durante el juego (unos 38 fps); la CPU emulada ejecuta el renderizado por software del juego. Son mediciones históricas, no una garantía de rendimiento. Hay otras versiones inventariadas, pero no validadas; LG VX10000 también necesita EGL/GLES. Algunas clases de BREW no están implementadas o se rechazan.
 

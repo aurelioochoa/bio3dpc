@@ -63,6 +63,10 @@ def main() -> int:
         parser.error('Cannot load controls: ' + str(error))
     profile = next((p for p in PROFILES if p.id == args.profile), None)
     args.mod = args.mod or (str(profile.mod_path(discover_root())) if profile else f'{GAME_DIR}/bio3d.mod')
+    if not args.data_dir and profile is not None and profile.id == 'n7705':
+        from bio3dpc.campaign import default_output, verify_campaign
+        if default_output().is_dir() and not verify_campaign(default_output()):
+            args.data_dir = str(default_output())  # rebuilt seven-pack landscape campaign
     args.data_dir = args.data_dir or (str(profile.data_path(discover_root())) if profile else DATA_DIR)
     if not Path(args.mod).is_file() or not Path(args.data_dir).is_dir():
         parser.error('Choose an existing original module and its matching data folder, or open ./bio3dpc.sh')

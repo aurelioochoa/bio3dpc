@@ -147,6 +147,8 @@ def main():
                 pump(.15)
                 assert view.verify_button.winfo_ismapped()
                 assert view.verify_button.winfo_rooty()+view.verify_button.winfo_height()<=installation.winfo_rooty()+installation.winfo_height()
+                assert view.campaign_button.winfo_ismapped()
+                assert view.campaign_button.winfo_rooty()+view.campaign_button.winfo_height()<=installation.winfo_rooty()+installation.winfo_height()
                 assert view.installation_guide.winfo_height()>40
                 if width==780:
                     capture('installation-preview.png',installation)

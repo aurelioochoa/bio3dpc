@@ -8,7 +8,7 @@
 
 ### Scope
 
-The current target is **Linux x86_64**, with separate profiles for **LG VX8350 v1.4.1.1** and **Nokia 7705 v1.5.2.1**. Runtime, launcher, controls, audio, saves, documentation and test improvements are useful. Both profiles reach gameplay; full campaign completion remains unverified, and the Nokia collection lacks later campaign packs.
+The current target is **Linux x86_64**, with separate profiles for **LG VX8350 v1.4.1.1** and **Nokia 7705 v1.5.2.1**. Runtime, launcher, controls, audio, saves, documentation and test improvements are useful. Both profiles reach gameplay. Nokia's missing later packs are rebuilt from sibling VX9900 data, and all seven landscape levels load; a complete playthrough remains unverified.
 
 Read the [README](README.md), [build coverage](docs/builds.md) and [detailed usage and architecture](docs/advanced-usage.md) before reporting a problem. Other handset builds are not interchangeable with the supported profiles. General BREW compatibility is outside the current scope.
 
@@ -71,7 +71,7 @@ Original host source is covered by [MIT](LICENSE). Preserve copyright and licens
 
 ### Alcance
 
-El objetivo actual es **Linux x86_64**, con perfiles separados para **LG VX8350 v1.4.1.1** y **Nokia 7705 v1.5.2.1**. Son útiles las mejoras del runtime, lanzador, controles, audio, partidas, documentación y pruebas. Ambos perfiles llegan al juego; la campaña completa sigue sin verificarse y la colección de Nokia carece de los paquetes posteriores.
+El objetivo actual es **Linux x86_64**, con perfiles separados para **LG VX8350 v1.4.1.1** y **Nokia 7705 v1.5.2.1**. Son útiles las mejoras del runtime, lanzador, controles, audio, partidas, documentación y pruebas. Ambos perfiles llegan al juego. Los paquetes posteriores que faltan en Nokia se reconstruyen con datos de VX9900, y los siete niveles horizontales cargan; una partida completa sigue sin verificarse.
 
 Consulta el [README](README.md#español), la [cobertura de versiones](docs/builds.md) y el [uso detallado y arquitectura](docs/advanced-usage.md) antes de informar de un problema. Las dos últimas referencias están en inglés. Las versiones de otros teléfonos no sustituyen a los perfiles compatibles. La compatibilidad general con BREW queda fuera del alcance actual.
 

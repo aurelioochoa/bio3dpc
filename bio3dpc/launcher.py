@@ -27,6 +27,11 @@ def log_path() -> Path:
     return xdg_path('XDG_STATE_HOME', '.local/state') / 'bio3dpc' / 'game.log'
 
 
+# Per-edition paths; the landscape edition also remembers the player's own
+# sibling data folders used to complete its campaign.
+PATH_KEYS = ('mod', 'data', 'vx9900', 'vx8350')
+
+
 @dataclass
 class Preferences:
     profile: str = 'vx8350'
@@ -51,7 +56,7 @@ class Preferences:
         paths = value.get('paths', {})
         if not isinstance(paths, dict) or any(
             not isinstance(key, str) or not isinstance(item, dict)
-            or any(name not in ('mod', 'data') or not isinstance(text, str)
+            or any(name not in PATH_KEYS or not isinstance(text, str)
                    for name, text in item.items()) for key, item in paths.items()
         ):
             raise ValueError('Invalid saved game paths')
@@ -93,6 +98,32 @@ def default_library() -> Path:
         return Path(os.environ.get('BIO3DPC_LIBRARY_DIR', ROOT / 'bioshock3d_game_files'))
 
 
+def landscape_campaign(data: Path) -> bool:
+    """True when ``data`` is a verified rebuilt seven-pack Nokia campaign."""
+    try:
+        from .campaign import verify_campaign
+    except ImportError:
+        return False
+    return data.is_dir() and not verify_campaign(data)
+
+
+def rebuilt_campaign() -> Path | None:
+    try:
+        from .campaign import default_output
+    except ImportError:
+        return None
+    return default_output()
+
+
+def campaign_sources(library: Path) -> dict[str, Path]:
+    """Where a collection usually keeps the landscape campaign's source data."""
+    try:
+        from .campaign import donor_folders
+    except ImportError:
+        return {}
+    return donor_folders(library)
+
+
 def validate_paths(mod: Path, data: Path, profile=None) -> list[str]:
     problems = []
     if not mod.is_file():
@@ -112,7 +143,8 @@ def validate_paths(mod: Path, data: Path, profile=None) -> list[str]:
         import hashlib
         if hashlib.sha256(mod.read_bytes()).hexdigest() != profile.sha256:
             problems.append('Module does not match the selected original build. Choose its matching build.')
-        if data.is_dir():
+        # A rebuilt landscape campaign verifies every pack, including the starters.
+        if data.is_dir() and not (profile.id == 'n7705' and landscape_campaign(data)):
             files = {path.name.lower(): path for path in data.iterdir() if path.is_file()}
             for name, expected in getattr(profile, 'asset_hashes', ()):
                 path = files.get(name)
@@ -169,6 +201,9 @@ class Launcher:
         self.key_bindings = {action: tk.StringVar(value=key) for action, key in preferences.controls.bindings.items()}
         self.mod = tk.StringVar()
         self.data = tk.StringVar()
+        self.campaign_vx9900 = tk.StringVar()
+        self.campaign_vx8350 = tk.StringVar()
+        self.campaign_status = tk.StringVar()
         self.status = tk.StringVar()
         self.installation_status = tk.StringVar()
         self.detail = tk.StringVar()
@@ -193,7 +228,7 @@ class Launcher:
 
     def select_build(self, event=None, *, reset=False):
         if self.selected is not None and self.mod.get() and self.data.get():
-            self.preferences.paths[self.selected.id] = {'mod': self.mod.get(), 'data': self.data.get()}
+            self.remember_paths(self.selected.id)
         self.selected = next((item for item in self.options if item.title == self.build.get()), self.selected)
         profile = self.selected
         if profile is None:
@@ -202,13 +237,72 @@ class Launcher:
         saved = {} if reset else self.preferences.paths.get(profile.id, {})
         library = Path(self.library.get()).expanduser()
         self.mod.set(saved.get('mod', str(profile.mod_path(library))))
-        self.data.set(saved.get('data', str(profile.data_path(library))))
+        data = saved.get('data', str(profile.data_path(library)))
+        rebuilt = rebuilt_campaign() if profile.id == 'n7705' else None
+        if rebuilt is not None and not landscape_campaign(Path(data).expanduser()) and landscape_campaign(rebuilt):
+            data = str(rebuilt)
+        self.data.set(data)
+        if profile.id == 'n7705':
+            sources = campaign_sources(library)
+            self.campaign_vx9900.set(saved.get('vx9900', str(sources.get('vx9900', ''))))
+            self.campaign_vx8350.set(saved.get('vx8350', str(sources.get('vx8350', ''))))
+        self.refresh_status()
+
+    def remember_paths(self, profile_id):
+        paths = dict(self.preferences.paths.get(profile_id, {}), mod=self.mod.get(), data=self.data.get())
+        if profile_id == 'n7705':
+            paths.update(vx9900=self.campaign_vx9900.get(), vx8350=self.campaign_vx8350.get())
+        self.preferences.paths[profile_id] = {key: value for key, value in paths.items() if value}
+
+    def describe_build(self):
+        profile = self.selected
+        if profile is None:
+            return
         orientation = 'Landscape' if profile.width > profile.height else 'Portrait'
         detail = f'{orientation} · {profile.width} × {profile.height} · original BREW binary'
         if profile.id == 'n7705':
-            detail += '\nLocal landscape collection contains only the first two DAT packs; later campaign assets are unavailable.'
+            if landscape_campaign(Path(self.data.get()).expanduser()):
+                detail += '\nChapters 1–4: campaign built on this computer from your own files and verified.'
+            else:
+                detail += ('\nYour Nokia files have only the first two DAT packs (chapter 1). '
+                           'For chapters 2–4, open Installation → Complete campaign.')
         self.detail.set(detail)
+
+    def campaign_folders(self) -> dict[str, Path]:
+        """The player's own Nokia starter, VX9900 and VX8350 data folders."""
+        library = Path(self.library.get()).expanduser()
+        nokia = Path(self.data.get()).expanduser()
+        if landscape_campaign(nokia) or not (nokia / 'bio1.dat').is_file():
+            nokia = campaign_sources(library).get('nokia', nokia)
+        return {'nokia': nokia, 'vx9900': Path(self.campaign_vx9900.get()).expanduser(),
+                'vx8350': Path(self.campaign_vx8350.get()).expanduser()}
+
+    def check_campaign(self) -> list[str]:
+        """Report which of the player's files are still needed; empty when ready."""
+        try:
+            from .campaign import check_donors
+            problems = check_donors(self.campaign_folders())
+        except (ImportError, OSError) as error:
+            problems = [str(error)]
+        self.campaign_status.set('\n'.join(problems) if problems else
+                                 'All required files found and matching. Choose Build from my files.')
+        return problems
+
+    def rebuild_campaign(self):
+        """Build the Nokia packs from the player's own files and select the result."""
+        from .campaign import CampaignError, rebuild
+        try:
+            output = rebuild(self.campaign_folders())
+        except (CampaignError, OSError) as error:
+            self.campaign_status.set('Cannot build the campaign:\n' + str(error))
+            self.installation_status.set('Cannot build the landscape campaign:\n' + str(error))
+            return False
+        self.data.set(str(output))
+        self.remember_paths('n7705')
         self.refresh_status()
+        self.campaign_status.set('Built and verified: chapters 1–4 are ready. Data folder: ' + str(output) +
+                                 '\nIt contains game data from your files; keep it private.')
+        return True
 
     def refresh_status(self):
         if self.child is not None:
@@ -216,11 +310,18 @@ class Launcher:
         mod, data = Path(self.mod.get()).expanduser(), Path(self.data.get()).expanduser()
         try:
             problems = validate_paths(mod, data, self.selected)
+            self.describe_build()
         except OSError as error:
             problems = ['Cannot read original game files: ' + str(error)]
-        self.installation_status.set('\n'.join(problems) if problems else
-                                     'Verified: module and starter assets match; required data packs are present.\n'
-                                     'Files are used in place; keep this folder available when playing.')
+        if problems:
+            verified = '\n'.join(problems)
+        elif self.selected is not None and self.selected.id == 'n7705' and landscape_campaign(data):
+            verified = ('Verified: module, starter packs and the campaign built from your own files match.\n'
+                        'Keep your module folder and the built data folder available when playing.')
+        else:
+            verified = ('Verified: module and starter assets match; required data packs are present.\n'
+                        'Files are used in place; keep this folder available when playing.')
+        self.installation_status.set(verified)
         self.status.set('Game files need attention. Open Installation to select and verify your BREW files.'
                         if problems else 'Original files found. Ready to launch; saves use your per-user state folder.')
 
@@ -237,7 +338,7 @@ class Launcher:
         preferences.scale = self.scale.get()
         preferences.audio = self.audio.get()
         preferences.animation = self.view.animate.get()
-        preferences.paths[preferences.profile] = {'mod': self.mod.get(), 'data': self.data.get()}
+        self.remember_paths(preferences.profile)
         preferences.save()
 
     def launch(self):

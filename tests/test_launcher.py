@@ -13,6 +13,12 @@ import pytest
 from bio3dpc import launcher
 
 
+@pytest.fixture(autouse=True)
+def isolated_campaign(monkeypatch, tmp_path):
+    # A rebuilt landscape campaign on this machine must not leak into tests.
+    monkeypatch.setenv('XDG_DATA_HOME', str(tmp_path / 'data home'))
+
+
 def profile_for(mod, data, name='vx8350'):
     return SimpleNamespace(id=name, title='Portrait · LG VX8350', width=176, height=220,
                            app_clsid=0x12345678, sha256=hashlib.sha256(mod.read_bytes()).hexdigest(),
@@ -148,6 +154,63 @@ def test_tk_launcher_dispatches_selected_profile_without_blocking(monkeypatch, t
             window.destroy()
         except tk.TclError:
             pass
+
+
+def test_landscape_prefers_a_verified_rebuilt_campaign(monkeypatch, tmp_path):
+    import tkinter as tk
+    try:
+        window = tk.Tk()
+    except tk.TclError:
+        if os.environ.get('BIO3DPC_REQUIRE_TK'):
+            raise
+        pytest.skip('No graphical display; set BIO3DPC_REQUIRE_TK=1 to require real Tk')
+    monkeypatch.setenv('XDG_CONFIG_HOME', str(tmp_path / 'config'))
+    mod, data = original_files(tmp_path)
+    landscape = profile_for(mod, data, 'n7705')
+    landscape.title, landscape.width, landscape.height = 'Landscape · Nokia 7705', 320, 240
+    rebuilt = tmp_path / 'rebuilt campaign'
+    rebuilt.mkdir()
+    for index in range(1, 8):
+        (rebuilt / f'bio{index}.dat').write_bytes(b'built from my files')
+    monkeypatch.setattr(launcher, 'profiles', lambda: (landscape,))
+    monkeypatch.setattr(launcher, 'rebuilt_campaign', lambda: rebuilt)
+    monkeypatch.setattr(launcher, 'landscape_campaign', lambda folder: Path(folder) == rebuilt)
+    try:
+        app = launcher.Launcher(window, library=tmp_path, profile='n7705')
+        assert Path(app.data.get()) == rebuilt
+        assert 'built on this computer from your own files' in app.detail.get()
+        assert 'campaign built from your own files' in app.installation_status.get()
+        # The starter-pack hashes are covered by the campaign verification.
+        assert launcher.validate_paths(mod, rebuilt, landscape) == []
+        app.data.set(str(data))
+        app.refresh_status()
+        assert 'first two DAT' in app.detail.get()
+        assert 'Complete campaign' in app.detail.get()
+        # Installation → Complete campaign guides the player through their own files.
+        app.view.installation()
+        app.view.campaign_button.invoke()
+        dialog = app.view.campaign_window
+        assert dialog is not None
+        guide = app.view.campaign_guide.get('1.0', 'end')
+        assert 'does not include, download or share' in guide and 'supply yourself' in guide
+        assert 'VX9900' in guide and 'VX8350' in guide and 'keep it private' in guide
+        own = tmp_path / 'my vx9900'
+        own.mkdir()
+        monkeypatch.setattr('bio3dpc.bathysphere.filedialog.askdirectory', lambda **kwargs: str(own))
+        app.view.campaign_browse_buttons[0].invoke()
+        assert Path(app.campaign_vx9900.get()) == own
+        assert 'bio3.dat is missing' in app.campaign_status.get()
+        # Without the player's files the build explains itself and changes nothing.
+        monkeypatch.setenv('XDG_DATA_HOME', str(tmp_path / 'empty data home'))
+        app.view.campaign_build_button.invoke()
+        assert 'Cannot build' in app.campaign_status.get()
+        assert Path(app.data.get()) == data
+        assert not (tmp_path / 'empty data home').exists()
+        app.save()
+        assert launcher.Preferences.load().paths['n7705']['vx9900'] == str(own)
+        app.view.close()
+    finally:
+        window.destroy()
 
 
 def test_real_launcher_starts_landscape_guest_and_pauses_video(monkeypatch, tmp_path):

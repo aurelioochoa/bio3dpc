@@ -61,3 +61,29 @@ def test_app_start_is_24_bytes_and_round_trips_args():
 
     assert len(data) == 24
     assert struct.unpack_from("<I", data, 20)[0] == args
+
+
+# ------------------------------------------------------- deferred callbacks
+def test_faulting_deferred_callback_is_logged_and_the_queue_continues():
+    from bio3dpc.machine import GuestError
+    from bio3dpc.services import BrewRuntime
+
+    calls, warnings = [], []
+
+    class Machine:
+        def call(self, pfn, args, timeout):
+            calls.append(pfn)
+            if pfn == 0x1000:
+                raise GuestError("guest fault")
+
+    class Log:
+        def warn(self, message):
+            warnings.append(message)
+
+    runtime = BrewRuntime.__new__(BrewRuntime)
+    runtime.m, runtime.log, runtime.quit = Machine(), Log(), False
+    runtime.deferred = [(0x1000, []), (0x2000, [])]
+    runtime._dispatch_deferred()
+
+    assert calls == [0x1000, 0x2000]
+    assert warnings == ["deferred callback 0x1000 faulted: guest fault"]

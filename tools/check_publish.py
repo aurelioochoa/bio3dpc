@@ -32,6 +32,10 @@ SECRET_PATTERNS = [
     re.compile(rb'(?i)(?:api[_-]?key|client[_-]?secret|access[_-]?token)\s*[:=]\s*[\"\x27][A-Za-z0-9_/+\-]{24,}[\"\x27]'),
 ]
 
+# Pages that host or hand out game files; the piracy policy forbids linking them.
+# Archived snapshots of documentation (web.archive.org) remain allowed.
+GAME_SOURCE_LINK = re.compile(rb'https?://(?:www\.)?archive\.org/(?:details|download)/', re.IGNORECASE)
+
 
 def command(*args):
     return subprocess.check_output(args, cwd=ROOT)
@@ -51,6 +55,8 @@ def violations(name, data, mode='100644'):
         issues.append('file exceeds the project publishing size limit (50 MiB)')
     if any(pattern.search(data) for pattern in SECRET_PATTERNS):
         issues.append('possible credential material')
+    if GAME_SOURCE_LINK.search(data):
+        issues.append('link to a game-file download source')
     return issues
 
 
@@ -62,6 +68,7 @@ def audit():
         ('.env', b'anything'),
         ('src/config.py', b'token="ghp_' + b'X' * 36 + b'"'),
         ('src/key.txt', b'-----BEGIN ' + b'PRIVATE KEY-----'),
+        ('docs/notes.md', b'[builds](https://' + b'archive.org/details/example)'),
     ]
     assert all(violations(name, data) for name, data in controls), 'Unsafe control escaped detection'
     entries = command('git', 'ls-files', '--stage', '-z').split(b'\0')

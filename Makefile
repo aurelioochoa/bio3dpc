@@ -39,7 +39,7 @@ export BIO3DPC_DATA_DIR := $(DATA)
 
 .DEFAULT_GOAL := help
 .PHONY: help venv test play launcher landscape install-desktop uninstall-desktop smoke mouse input shot keys auto series boot disasm \
-        check-paths clean clean-artifacts
+        check-paths clean clean-artifacts rebuild-landscape verify-campaign
 
 help:
 	@echo "bio3dpc - development entry points"
@@ -49,6 +49,8 @@ help:
 	@echo "  make play        play the game in a window"
 	@echo "  make launcher    open the animated Bathysphere launcher"
 	@echo "  make landscape   play the Nokia 7705 landscape build"
+	@echo "  make rebuild-landscape  rebuild Nokia bio3-bio7 from VX9900/VX8350 originals"
+	@echo "  make verify-campaign    load all seven landscape levels from a chapter-1 save"
 	@echo "  make install-desktop  install a per-user applications-menu entry"
 	@echo "  make uninstall-desktop  remove menu entry and command; preserve saves"
 	@echo "  make smoke       headless check: window opens, frames draw, keys arrive"
@@ -95,6 +97,12 @@ launcher:
 
 landscape:
 	$(PY) tools/play.py --profile n7705 --scale $(SCALE)
+
+rebuild-landscape:
+	$(PY) tools/rebuild_landscape.py
+
+verify-campaign:
+	$(PY) tools/verify_campaign.py --out $(OUT)/campaign
 
 install-desktop:
 	$(PY) -m bio3dpc.desktop

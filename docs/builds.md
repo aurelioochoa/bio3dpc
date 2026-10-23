@@ -19,9 +19,9 @@ were a consequence of that initial choice, not a reason to exclude landscape.
 ## Collection inventory
 
 The local collection is now `bioshock3d_game_files/`: original handset folders
-are grouped under `release_builds/`, separate packs remain under `data/`,
-prototypes live under `development_builds/`, and downloaded bundles under
-`archives/`. Legacy flat collections remain supported.
+are grouped under `release_builds/`, separate packs remain under `data/`, and
+prototypes live under `development_builds/`. Legacy flat collections remain
+supported.
 
 | ID | Device / version | Native screen | Applet class | Rendering / launcher status |
 | --- | --- | --- | --- | --- |
@@ -39,9 +39,9 @@ in `bio3dpc/profiles.py`. The verifier checks each class ID against its actual
 MIF record, including the non-four-byte-aligned records.
 
 The original Nokia folder contains only `bio1.dat` and `bio2.dat`. Its
-`bio3.dat` through `bio7.dat` are absent. The other devices' data sets are
-not substitutes: their first packs and indexes do not match this build.
-The launcher states that later campaign assets are unavailable. First-scene
+`bio3.dat` through `bio7.dat` are absent. Other devices' first packs and
+indexes do not match this build; the later packs are rebuilt as described in
+[Rebuilt landscape campaign](#rebuilt-landscape-campaign). First-scene
 verification is not a full campaign qualification, including for VX8350.
 
 `vx9400` and `vx9700` have internally consistent indexes but match none of
@@ -59,12 +59,76 @@ and matching sizes or shared starter resources do not prove authentic later
 packs or later-level compatibility. The verified landscape profile continues
 to use its original starter files, with the missing-content warning retained.
 
+## Rebuilt landscape campaign
+
+`bio3dpc/campaign.py` (launcher **Installation → Complete campaign…**,
+`make rebuild-landscape`) writes a complete Nokia data folder to
+`~/.local/share/bio3dpc/campaign/n7705` from data the player supplies. Inputs
+are read only and pinned by SHA-256; each output pack is checked against its
+expected SHA-256. The rebuild code holds only hashes, the container format
+and the key-label substitutions; it contains no game data or game code.
+
+Evidence that the retail `data/vx9900` set is Nokia's sibling content:
+
+- Its `bio1.dat` has the same 398 records as Nokia's; 389 payloads are
+  identical and the six others are text. Every text difference is a key label:
+  VX9900 QWERTY prompts became keypad prompts on Nokia (`(OK)`→`(5)` for attack,
+  `(Z)`→`(OK)` for crouch, `(S)`→`(8)`, `Q`/`E`→`7`/`9`, use `W`→`0`).
+- Nokia's own `bio3d.idx` still lists all seven pack sizes. VX9900 `bio3.dat`
+  and `bio6.dat` match those sizes exactly.
+- Applying Nokia's labels to the VX9900 level prompts (`GMessagesLevel2a/2b`:
+  `(W)`→`(0)`, `(Z)`→`(OK)`) makes `bio4.dat` exactly Nokia's declared size.
+  The relabelled text equals VX8350's keypad wording for the same prompts.
+- Nokia's declared `bio5.dat` size equals VX8350's `bio5.dat`, which differs
+  from VX9900's only by a shorter `gene_bank_text.txt`. That pack is used.
+- `bio7.dat` cannot be size-matched: VX9900's is 335 bytes larger than
+  declared and no known variant accounts for the difference. It is used
+  unmodified, and the rebuilt index declares its real size. That index entry is
+  the only change from Nokia's.
+
+| Pack | Source | Nokia index size |
+| --- | --- | --- |
+| `bio1.dat`, `bio2.dat` | Nokia original, copied | original |
+| `bio3.dat` | VX9900, unchanged | exact |
+| `bio4.dat` | VX9900, prompts relabelled | exact |
+| `bio5.dat` | VX8350, unchanged | exact |
+| `bio6.dat` | VX9900, `Knock (W)`→`Knock (0)` (same length) | exact |
+| `bio7.dat` | VX9900, unchanged | 335 bytes larger |
+
+The DAT writer reproduces every VX9900 later pack byte for byte before any
+change. Textures are power-of-two images, so pack content is independent of
+screen size.
+
+**Native behaviour (observed).** At startup the Nokia module reads
+`bio3d.idx`, opens each `bio1.dat`–`bio7.dat` and opens a pack a second time
+only when its size equals the index entry. A pack with any other size is
+rejected; the game would later prompt to download it (`HttpDownloader`, with an
+optional `daturl.txt` URL override). Ghidra decompilation through REA of
+`0x5c750` shows the level-change script action recording the current level at
+`game+0x110`, writing transfer data and setting `game+0x108` to the next level.
+The loader at `0x69450` switches on `game+0x108` (0–6) across
+`01_welcome_to_rapture_a` to `04_smugglers_hideout`. Continue reads the saved
+level from save object offset `0x96c` and stores it at `0x39238`.
+
+With the rebuilt packs, the module's resource-name references drop from 222
+unresolved names to 32. All 32 remaining names are also unresolved for the
+VX8350 build with its complete original packs (for example the cut "Rosie" Big
+Daddy and `daturl.txt`).
+
+`tools/verify_campaign.py` loads each level through Continue from a copied
+chapter-1 save. A code hook substitutes only the saved level index; the module,
+data and save are unchanged. All seven levels loaded through the original
+loader, opened no missing resources and moved the player in at least two of
+four directions. Separately, a new game steered to level 2 rendered the
+Medical Pavilion opening cutscene and HUD. Not verified: the scripted level
+transitions themselves, every encounter, or a full playthrough. The rebuilt
+text matches Nokia's conventions by inference, not from a recovered original.
+
 ## Landscape compatibility work
 
-A separate LG VX9900 v1.5.1.2 build1 prototype was recovered from the
-[preservation archive](https://archive.org/details/bioshock3d_mobile), nested in
-`development builds.zip` as `bio3d_lg9900_1.5.1.2_build1.rar`. Its ARM module and
-Windows simulator DLL each ship with all seven packs. Every pack matches its
+A separate LG VX9900 v1.5.1.2 build1 development prototype was also examined
+from the local collection. Its ARM module and Windows simulator DLL each come
+with all seven packs. Every pack matches its
 bundled index size, and parsed resources include all four released chapters.
 These files are in `development_builds/lg9900-v1.5.1.2-build1/`, with hashes and
 resource inventory in `verification.json`. This is a distinct prototype data set

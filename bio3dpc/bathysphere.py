@@ -30,6 +30,7 @@ class BathysphereView:
         self.frames_drawn = 0
         self.settings_window = None
         self.installation_window = None
+        self.campaign_window = None
         self.animate = tk.BooleanVar(value=app.preferences.animation)
         self.controls = []
         self.focus_control = self.pressed_control = None
@@ -339,6 +340,9 @@ class BathysphereView:
         if self.installation_window is not None:
             self.installation_window.destroy()
             self.installation_window=None
+        if self.campaign_window is not None:
+            self.campaign_window.destroy()
+            self.campaign_window=None
 
     def installation(self):
         if self.installation_window is not None:
@@ -373,7 +377,10 @@ class BathysphereView:
             'Portrait needs bio1.dat through bio7.dat and bio3d.idx from the same build. '
             'Its complete data folder is usually data/vx8350. Landscape uses its own '
             '278583 folder with bio1.dat, bio2.dat and bio3d.idx; later campaign packs '
-            'are missing from the known collection. Do not mix handset builds.\n\n'
+            'are missing from that release. Do not mix handset builds.\n\n'
+            'Landscape chapters 2–4: choose Complete campaign. It builds them on this computer '
+            'from two more original data sets that you supply yourself (LG VX9900 bio3.dat to '
+            'bio7.dat and LG VX8350 bio5.dat). bio3dpc does not include, download or share them.\n\n'
             'Default collection locations: bioshock3d_game_files beside this checkout, '
             'then under ~/Downloads. Legacy bio3d_versions collections are also supported. '
             'Handset releases live in release_builds; older flat layouts also work. '
@@ -413,6 +420,14 @@ class BathysphereView:
         self.verify_button=self._dialog_button(panel,'Verify files',app.refresh_status,'secondary',150,38)
         self.verify_button.grid(row=10,column=0,sticky='w',pady=8)
         self._dialog_button(panel,'Save and return',done,'secondary',190,38).grid(row=10,column=1,pady=8)
+        def complete():
+            if app.selected is None or app.selected.id!='n7705':
+                app.installation_status.set('Only the Nokia 7705 landscape edition needs Complete campaign; '
+                                            'the portrait edition ships all seven packs.')
+                return
+            self.campaign(dialog)
+        self.campaign_button=self._dialog_button(panel,'Complete campaign…',complete,'secondary',190,38)
+        self.campaign_button.grid(row=11,column=0,sticky='w')
         dialog.protocol('WM_DELETE_WINDOW',done)
         app.refresh_status()
 
@@ -621,6 +636,86 @@ class BathysphereView:
         canvas.bind('<MouseWheel>',wheel)
         canvas.bind('<Button-4>',wheel)
         canvas.bind('<Button-5>',wheel)
+
+    def campaign(self,parent=None):
+        """Guide the player through building landscape chapters 2-4 from their own files."""
+        if self.campaign_window is not None:
+            self.campaign_window.lift()
+            return
+        app=self.app
+        dialog=self.campaign_window=tk.Toplevel(parent or self.window)
+        dialog.title('BioShock 3D · Complete the landscape campaign')
+        dialog.geometry('720x600')
+        dialog.minsize(560,520)
+        dialog.transient(parent or self.window)
+        dialog.configure(bg=DARK)
+        panel=tk.Frame(dialog,bg=DARK,padx=20,pady=16)
+        panel.pack(fill='both',expand=True)
+        panel.columnconfigure(0,weight=1)
+        panel.rowconfigure(1,weight=1)
+        tk.Label(panel,text='Complete the landscape campaign',bg=DARK,fg=GOLD,
+                 font=('FreeSerif',17)).grid(row=0,column=0,columnspan=2,sticky='w',pady=(0,10))
+        from tkinter.scrolledtext import ScrolledText
+        guide=ScrolledText(panel,height=8,wrap='word',bg='#102b24',fg=INK,
+                           font=('FreeSans',11),relief='flat',padx=10,pady=8)
+        guide.grid(row=1,column=0,columnspan=2,sticky='nsew',pady=(0,12))
+        guide.insert('1.0',
+            'bio3dpc does not include, download or share any game files. The Nokia 7705 '
+            'release contains only chapter 1 (bio1.dat and bio2.dat). Chapters 2–4 '
+            '(Medical Pavilion, Neptune\'s Bounty, Smuggler\'s Hideout) can be built on '
+            'this computer from two other original BioShock 3D data sets that you must '
+            'also supply yourself:\n\n'
+            '1. LG VX9900 data folder with bio3.dat through bio7.dat (often data/vx9900).\n'
+            '2. LG VX8350 data folder with bio5.dat (often data/vx8350, the portrait data).\n'
+            '3. Choose Check files, then Build from my files.\n\n'
+            'Each file must match its known original exactly (SHA-256). Your files are '
+            'only read. The built campaign is written to '
+            '~/.local/share/bio3dpc/campaign/n7705 and selected as the landscape data '
+            'folder; it contains game data from your files, so keep it private.')
+        guide.configure(state='disabled')
+        self.campaign_guide=guide
+        self.campaign_browse_buttons=[]
+        for row,title,var in ((2,'LG VX9900 data folder (bio3.dat – bio7.dat)',app.campaign_vx9900),
+                              (4,'LG VX8350 data folder (bio5.dat)',app.campaign_vx8350)):
+            tk.Label(panel,text=title,bg=DARK,fg=INK,font=('FreeSans',11)).grid(row=row,column=0,sticky='w')
+            entry=tk.Entry(panel,textvariable=var,bg='#102b24',fg=INK,insertbackground=GOLD,relief='flat',highlightthickness=1,highlightbackground='#70603d',highlightcolor=GOLD)
+            entry.grid(row=row+1,column=0,sticky='ew',pady=(5,13),padx=(0,10),ipady=5)
+            def browse(variable=var):
+                choice=filedialog.askdirectory(parent=dialog)
+                if choice:
+                    variable.set(choice)
+                    app.check_campaign()
+            button=self._dialog_button(panel,'Browse…',browse,'secondary',90,32)
+            button.grid(row=row+1,column=1)
+            self.campaign_browse_buttons.append(button)
+        result=ScrolledText(panel,height=3,wrap='word',bg=DARK,fg=INK,font=('FreeSans',10),relief='flat')
+        result.grid(row=6,column=0,columnspan=2,sticky='ew',pady=8)
+        def update_result(*args):
+            result.configure(state='normal')
+            result.delete('1.0','end')
+            result.insert('1.0',app.campaign_status.get())
+            result.configure(state='disabled')
+        trace=app.campaign_status.trace_add('write',update_result)
+        def build():
+            dialog.configure(cursor='watch')
+            dialog.update_idletasks()
+            try:
+                app.rebuild_campaign()
+            finally:
+                dialog.configure(cursor='')
+        def done():
+            app.campaign_status.trace_remove('write',trace)
+            dialog.destroy()
+            self.campaign_window=None
+        buttons=tk.Frame(panel,bg=DARK)
+        buttons.grid(row=7,column=0,columnspan=2,sticky='ew')
+        self.campaign_check_button=self._dialog_button(buttons,'Check files',app.check_campaign,'secondary',150,38)
+        self.campaign_check_button.pack(side='left',pady=8)
+        self.campaign_build_button=self._dialog_button(buttons,'Build from my files',build,'secondary',190,38)
+        self.campaign_build_button.pack(side='left',padx=10,pady=8)
+        self._dialog_button(buttons,'Close',done,'secondary',110,38).pack(side='right',pady=8)
+        dialog.protocol('WM_DELETE_WINDOW',done)
+        app.check_campaign()
 
     def _path_controls(self,panel,dialog,*,start=0):
         app=self.app
